@@ -8,6 +8,7 @@ topics: [claude, anthropic, claude-skill, prompt-engineering, github, documentat
 project_type: claude-skill
 visibility: public
 license: MIT
+author_legal_name: Hayal Oezkan
 author_label: Autor
 github_user: malkreide
 default_branch: main
@@ -15,5 +16,4 @@ language: markdown
 version: 1.1.0
 confirmed: false        # Vorschlagswerte aus dem Repo abgeleitet, noch nicht bestätigt
 offen:
-  - author_legal_name (für LICENSE-Copyright, siehe Schritt 5)
   - topics gegen die Repo-Settings abgleichen
