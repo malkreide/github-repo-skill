@@ -7,9 +7,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added
-- Backend section and troubleshooting entry for blocked tag pushes: a session's egress policy can reject `refs/tags/*` with `403` while branch pushes succeed, which leaves the tag local only — and the container is ephemeral
-
 ## [1.1.0] - 2026-07-31
 
 ### Added
@@ -18,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Step 11.1: branch → push → draft PR flow for web sessions, push retry guidance, ephemeral-container warning, and how to continue after a merged PR
 - Bundle from the maintained working copy: `assets/` (LICENSE, gitignore, README templates, CI and publish workflows), `references/` (MCP publishing, review rules), `scripts/` (`validate_repo.py`, `check_release_artifacts.py`)
 - Steps 8, 9, and 12: CI configuration, mandatory secrets check, and release gate
+- Backend section and troubleshooting entry for blocked tag pushes: a session's egress policy can reject `refs/tags/*` with `403` while branch pushes succeed, which leaves the tag local only — and the container is ephemeral
 - This repository's own missing standard files: `.gitignore`, `SECURITY.md`, `CONTRIBUTING.md`, `.github/repo-meta.yml`, `ruff.toml`, and a CI workflow that runs the skill's own validator against itself
 
 ### Changed
