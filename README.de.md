@@ -1,95 +1,146 @@
-[🇬🇧 English Version](README.md)
-
 # github-repo-skill
 
-![Version](https://img.shields.io/badge/version-1.0.0-blue)
+![Version](https://img.shields.io/badge/version-1.1.0-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Claude Skill](https://img.shields.io/badge/claude-skill-orange)
 
-> Eine Claude SKILL.md, die professionelle GitHub Repositories mit zweisprachigen README-Dateien, Standarddateien und einem vollständigen `gh`-CLI-Workflow erstellt und pflegt.
+> Ein Claude Skill, der professionelle GitHub Repositories erstellt, prüft und publiziert — zweisprachige READMEs, Secrets-Check, reproduzierbare CI und Release-Gate.
+
+[🇬🇧 English Version](README.md)
 
 ## Übersicht
 
-Dieser Skill ermöglicht es Claude, vollständige, professionelle GitHub Repositories für technische Projekte wie MCP-Server, Claude Skills, Raspberry-Pi-Projekte und Python-Bibliotheken zu erstellen. Er generiert zweisprachige README-Dateien (Englisch + Deutsch), Standarddateien (LICENSE, .gitignore, CHANGELOG) und führt durch den vollständigen `gh`-CLI-Workflow — vom ersten Setup bis zu Releases.
+Dieser Skill ermöglicht Claude, vollständige GitHub Repositories für technische
+Projekte zu erstellen und zu pflegen — MCP-Server, Claude Skills,
+Raspberry-Pi-Projekte, Python-Bibliotheken. Er generiert zweisprachige READMEs
+(Englisch + Deutsch), Standard-Dateien (LICENSE, .gitignore, CHANGELOG, SECURITY,
+CONTRIBUTING) und führt durch den gesamten Ablauf vom ersten Commit bis zum
+Release auf PyPI oder in der MCP-Registry.
 
-Der Skill ist für Entwicklerinnen und Entwickler konzipiert, die konsistente, gut dokumentierte Repositories wollen, ohne sich bei jeder Gelegenheit alle Konventionen und Befehle merken zu müssen.
+Jede Regel darin geht auf einen real aufgetretenen Fehler zurück — die meisten aus
+einem Prüfdurchlauf über 43 Repositories. Keine davon ist vorsorglich.
 
 ## Funktionen
 
-- Einmaliger Session-Intake: Titel, Description und Topics werden einmal am Anfang gesammelt und in `.github/repo-meta.yml` festgehalten, statt in jedem Schritt neu erfragt zu werden
-- Automatische Projekttyp-Erkennung (MCP-Server, Claude Skill, Raspberry Pi, Python-Bibliothek)
-- Zweisprachige README-Generierung (Englisch als Hauptdatei + deutsche Übersetzung), gegenseitig verlinkt
-- Repository-Metadaten: Name, Description und Topics/Tags nach Konvention
-- Standarddateien: MIT LICENSE, projekttyp-spezifische .gitignore, CHANGELOG.md
-- Vollständiger `gh`-CLI-Workflow: Repo-Erstellung, Topics setzen, Updates, Releases
-- Conventional-Commits-Anleitung und Semantic Versioning
-- Qualitätscheckliste vor dem ersten Push und vor jedem Release
+- **Einmaliger Session-Intake** — Titel, Description und Topics werden einmal
+  gebündelt erfasst, bevor die erste Datei entsteht, und in `.github/repo-meta.yml`
+  festgehalten
+- **Backend-unabhängig** — funktioniert mit der `gh`-CLI, mit GitHub-MCP-Tools
+  (Claude Code im Web, wo `gh` nicht existiert) oder mit reinem `git`
+- **Secrets-Check vor dem ersten Push** — Ignore-Regeln, automatisierter Scan,
+  History-Bereinigung und eine kontextspezifische Prüfung für die öffentliche
+  Verwaltung
+- **Reproduzierbare CI** — gepinnte Linter-Regelsätze, Konfiguration je
+  Subprojekt, keine blinden Assertions in Tests
+- **Release-Gate** — prüft die Artefakte vor dem unveränderlichen PyPI-Upload
+- Zweisprachige README-Generierung (Englisch als Hauptdatei + deutsche Fassung),
+  gegenseitig verlinkt
+- Prüfregeln für bestehende Repositories: melden statt «aufräumen»
+- Zwei ausschliesslich lesende Prüfskripte sowie fertige Vorlagen für Workflows,
+  .gitignore und READMEs
 
 ## Voraussetzungen
 
-- [GitHub CLI (`gh`)](https://cli.github.com/) installiert und authentifiziert
+- Claude mit Skill-Unterstützung (Claude Code oder das Skills-Verzeichnis deines
+  Setups)
 - Git installiert und konfiguriert
-- Ein GitHub-Konto
+- Python 3.9+ für die Prüfskripte
+- Optional: [GitHub CLI (`gh`)](https://cli.github.com/) — ohne sie weicht der
+  Skill auf GitHub-MCP-Tools oder reines `git` aus
+- Optional: [`gitleaks`](https://github.com/gitleaks/gitleaks) für den
+  automatisierten Secrets-Scan
 
 ## Installation
-
-`SKILL.md` in den Claude-Skills-Ordner kopieren:
 
 ```bash
 # Repository klonen
 git clone https://github.com/malkreide/github-repo-skill.git
 
-# Skill in das Claude-Skills-Verzeichnis kopieren
-cp github-repo-skill/SKILL.md /pfad/zu/deinen/skills/github-repo/SKILL.md
+# Ganzes Bundle kopieren — der Skill liest assets/, references/ und scripts/
+cp -r github-repo-skill /pfad/zu/deinen/skills/github-repo
 ```
 
-## Verwendung / Quickstart
+## Verwendung
 
-Nach der Installation als Claude Skill wird er durch folgende Formulierungen ausgelöst:
+Nach der Installation lässt sich der Skill so auslösen:
 
-- *"Erstelle ein GitHub Repo für dieses Projekt"*
-- *"Mach das GitHub-ready"*
-- *"Wie stelle ich das auf GitHub?"*
-- *"Generiere README-Dateien für meinen MCP-Server"*
+- *«Erstelle ein GitHub-Repo für dieses Projekt»*
+- *«Kannst du das GitHub-ready machen?»*
+- *«Warum ist die CI rot, obwohl sich nichts geändert hat?»*
+- *«Publiziere diesen MCP-Server in der Registry»*
 
-Claude führt dann durch alle Schritte: Metadaten, Dateigenerierung und `gh`-CLI-Befehle.
+Claude beginnt mit dem Session-Intake und führt danach durch Dateigenerierung,
+Secrets-Check und Repo-Einrichtung.
+
+Der Validator lässt sich jederzeit gegen ein bestehendes Repo laufen:
+
+```bash
+python3 scripts/validate_repo.py /pfad/zum/repo
+# Exit-Code 0 = keine Fehler, 1 = mindestens ein Fehler
+```
 
 ## Projektstruktur
 
 ```
 github-repo-skill/
-├── SKILL.md          ← Der Claude Skill (Hauptdatei)
-├── README.md         ← Englische Version
-├── README.de.md      ← Diese Datei (Deutsch)
-├── LICENSE           ← MIT-Lizenz
-├── .gitignore        ← Skill-spezifische Ignores
-└── CHANGELOG.md      ← Versionsverlauf
+├── SKILL.md                          ← Der Skill (Hauptdatei)
+├── assets/
+│   ├── LICENSE-MIT.txt
+│   ├── gitignore/                    ← python, node, raspberry-pi, claude-skill
+│   ├── templates/                    ← README.md, README.de.md
+│   └── workflows/                    ← ci.yml, publish.yml
+├── references/
+│   ├── mcp-publishing.md             ← PyPI + MCP-Registry, vor jedem Release lesen
+│   └── review-rules.md               ← vor Änderungen an bestehenden Repos lesen
+├── scripts/
+│   ├── validate_repo.py              ← Struktur- und Dokumentationsprüfung
+│   └── check_release_artifacts.py    ← Release-Gate
+├── .github/repo-meta.yml             ← Intake-Ergebnis dieses Repos
+├── README.md · README.de.md
+├── SECURITY.md · CONTRIBUTING.md
+├── LICENSE · .gitignore · CHANGELOG.md
 ```
 
 ## Was der Skill abdeckt
 
-Der Skill führt durch einen Intake-Schritt und 10 Arbeitsschritte:
+Ein Intake-Schritt, zwölf Arbeitsschritte und eine Prüfspur:
 
-0. **Session-Intake** — Titel, Description, Topics, Visibility einmalig gebündelt erfassen und in `.github/repo-meta.yml` festhalten
-1. **Projekttyp-Erkennung** — MCP-Server, Claude Skill, Raspberry Pi, Python-Bibliothek
-2. **Repo-Metadaten** — Namenskonventionen, Description, Topics/Tags
-3. **README.md (EN)** — vollständiges Template mit Badges und allen Pflichtabschnitten
-4. **README.de.md** — Deutsche Übersetzung, Schweizer Rechtschreibung
-5. **LICENSE** — MIT Standard
-6. **.gitignore** — projekttyp-spezifisch
-7. **CHANGELOG.md** — Keep-a-Changelog-Format + Semantic Versioning
-8. **`gh`-CLI-Workflow** — Repo-Erstellung, Auth-Check, Topics setzen
-9. **Commit-Workflow** — Conventional Commits, Post-Commit-Checkliste
-10. **Release-Workflow** — Git Tags, `gh release create`, Badge-Updates
+| Schritt | Inhalt |
+|---|---|
+| 0 | **Session-Intake** — Metadaten einmal erfassen, in `.github/repo-meta.yml` ablegen |
+| 1–2 | Projekttyp, Namenskonventionen, Dateistruktur |
+| 3–4 | README.md (EN) und README.de.md (DE), gegenseitig verlinkt |
+| 5–7 | LICENSE, .gitignore, CHANGELOG |
+| 8 | Python- und CI-Konfiguration — die drei Ursachen für CI-Fehler ohne Codeänderung |
+| 9 | Secrets-Check vor dem ersten Push |
+| 10 | Repo erstellen und konfigurieren |
+| 11 | Commit-Workflow inklusive Branch → Draft-PR für Web-Sessions |
+| 12 | Release mit Gate, Tag und versionsgenauen Release-Notes |
+| — | Bestehende Repos: Prüfregeln, Qualitätscheckliste, Troubleshooting-Tabelle |
+
+Vor jeder GitHub-Operation bestimmt der Skill sein Backend (`gh`-CLI, MCP-Tools
+oder reines `git`) und ordnet jede Operation entsprechend zu. Was das aktuelle
+Backend nicht kann, wird als offener Punkt vermerkt statt stillschweigend
+übergangen.
 
 ## Changelog
 
 Siehe [CHANGELOG.md](CHANGELOG.md)
 
+## Mitwirken
+
+Beiträge sind willkommen — siehe [CONTRIBUTING.md](CONTRIBUTING.md). Der Massstab
+für eine neue Regel: den Fehler benennen, den sie verhindert.
+
+## Sicherheit
+
+[SECURITY.md](SECURITY.md) beschreibt den Meldeweg und den sicheren Einsatz des
+Skills.
+
 ## Lizenz
 
-MIT-Lizenz — siehe [LICENSE](LICENSE)
+MIT License — siehe [LICENSE](LICENSE)
 
-## Autorin
+## Autor
 
 malkreide · [github.com/malkreide](https://github.com/malkreide)

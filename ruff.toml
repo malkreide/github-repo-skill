@@ -1,0 +1,7 @@
+# Regel 8.1: Regelsatz explizit pinnen. Ohne `select` gilt ruffs Default —
+# und der ändert sich zwischen Releases, was CI ohne Codeänderung rot macht.
+target-version = "py39"
+
+[lint]
+select = ["E", "F", "W", "I", "UP"]
+ignore = ["E501"]

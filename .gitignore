@@ -1,0 +1,10 @@
+.DS_Store
+*.log
+/tmp/
+.env
+.env.*
+*.key
+*.pem
+credentials.json
+secrets.yaml
+config.local.*
