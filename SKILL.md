@@ -1,101 +1,172 @@
 ---
 name: github-repo
-description: Erstelle und pflege professionelle GitHub Repositories für technische Projekte (MCP-Server, Claude SKILLs, Raspberry Pi, Python, etc.). Verwende diesen Skill immer wenn der User (1) ein neues GitHub Repo erstellen oder publizieren möchte, (2) README-Dateien auf Englisch und Deutsch benötigt, (3) Repo-Metadaten (Name, Description, Topics/Tags) definieren will, (4) Standard-Dateien (LICENSE, .gitignore, CHANGELOG) generieren lassen möchte, (5) ein bestehendes Repo nach neuen Commits aktualisieren will, (6) einen Release mit Versionsnummer erstellen möchte, (7) den gh-CLI-Workflow für GitHub-Operationen nutzen will. Auch wenn der User fragt "Wie stelle ich das auf GitHub?", "Kannst du das GitHub-ready machen?" oder ähnliches — dann diesen Skill verwenden.
+description: Erstelle, prüfe und publiziere professionelle GitHub Repositories für technische Projekte (MCP-Server, Claude SKILLs, Raspberry Pi, Python). Verwende diesen Skill immer wenn der User (1) ein Repo erstellen, publizieren oder GitHub-ready machen will, (2) bilinguale READMEs (EN/DE) oder Standard-Dateien (LICENSE, .gitignore, CHANGELOG, SECURITY, CONTRIBUTING) braucht, (3) Repo-Metadaten wie Name, Description oder Topics definiert, (4) ein bestehendes Repo prüfen, aktualisieren oder aufräumen will, (5) einen Release oder Git-Tag erstellt, (6) ein Python-Paket oder einen MCP-Server auf PyPI bzw. in die MCP-Registry publiziert, (7) den GitHub-Workflow per gh-CLI oder MCP-Tools nutzt, (8) vor einem Push einen Secrets-, Datenschutz- oder Sicherheitscheck braucht, (9) CI-Fehler debuggt, die ohne Codeänderung auftreten. Auch bei Fragen wie «Wie stelle ich das auf GitHub?», «Kannst du das GitHub-ready machen?», «Warum ist die CI rot?» oder «Warum schlägt der Publish fehl?» diesen Skill verwenden.
 ---
 
 # GitHub Repo Skill
 
-Erstellt vollständige, professionelle GitHub Repositories mit bilingualem README (EN/DE), Standard-Dateien und `gh`-CLI-Workflow.
+Erstellt und pflegt GitHub Repositories mit bilingualem README (EN/DE),
+Standard-Dateien, Secrets-Check, reproduzierbarer CI und Release-Gate.
+
+## Bundle
+
+| Datei | Wann lesen / verwenden |
+|---|---|
+| `scripts/validate_repo.py` | Immer vor Push und Release. Meldet Struktur-, README- und CI-Konfigurationsfehler. Ändert nichts. |
+| `scripts/check_release_artifacts.py` | Im Release-Workflow, nach `python -m build`, vor dem Upload. |
+| `references/mcp-publishing.md` | Sobald ein `*-mcp`-Repo publiziert oder released wird. |
+| `references/review-rules.md` | **Vor** jeder Änderung an einem bestehenden Repo. |
+| `assets/templates/` | README-Vorlagen EN/DE |
+| `assets/workflows/` | `ci.yml`, `publish.yml` |
+| `assets/gitignore/`, `assets/LICENSE-MIT.txt` | Standard-Dateien |
+
+## Vier Grundregeln
+
+1. **Metadaten einmal erfassen** (Schritt 0). Titel, Description und Topics werden pro Projekt genau einmal erfragt — gebündelt, vor der ersten Datei, festgehalten in `.github/repo-meta.yml`.
+2. **Melden statt aufräumen.** Bei bestehenden Repos zuerst `references/review-rules.md` lesen. Abweichungen sind oft bewusst (Selbstbezeichnungen, präzisere Sektionstitel, deutsche Synonyme) — sie werden nicht «vereinheitlicht».
+3. **Kein Push ohne Secrets-Check** (Schritt 9). Die Git-History lässt sich nicht nachträglich privat machen.
+4. **Kein Release ohne Gate** (Schritt 12). PyPI-Releases sind unveränderlich; drei der häufigsten Fehler fallen erst nach dem erfolgreichen Upload auf.
+
+---
+
+## GitHub-Backend bestimmen — `gh` ist nicht überall vorhanden
+
+**In Claude Code auf dem Web und in Remote-Sessions ist die `gh`-CLI nicht
+installiert.** Dort stehen nur die GitHub-MCP-Tools und `git` zur Verfügung. Vor
+der ersten GitHub-Operation feststellen, welches Backend gilt:
+
+```bash
+command -v gh >/dev/null && gh auth status    # Treffer → Backend A
+```
+
+| | Backend | Erkennung |
+|---|---|---|
+| **A** | `gh`-CLI | `command -v gh` liefert einen Pfad und `gh auth status` ist grün |
+| **B** | GitHub-MCP-Tools | kein `gh`, aber Tools wie `create_repository`, `create_pull_request`, `push_files` verfügbar |
+| **C** | nur `git` | weder noch — Repo-Anlage und Settings laufen manuell über github.com |
+
+**Operationen je Backend:**
+
+| Operation | A — `gh` | B — MCP-Tools | C — nur `git` |
+|---|---|---|---|
+| Repo anlegen | `gh repo create` | `create_repository` | manuell auf github.com, dann `git remote add origin` |
+| Description setzen | `gh repo edit --description` | Feld von `create_repository`, sonst Settings-UI | Settings-UI |
+| **Topics setzen** | `gh repo edit --add-topic` | **kein Tool vorhanden** → Settings-UI, und in `repo-meta.yml` als offen markieren | Settings-UI |
+| Commit + Push | `git push` | `push_files` / `create_or_update_file` oder `git push` | `git push` |
+| Branch anlegen | `git checkout -b` | `create_branch` | `git checkout -b` |
+| PR erstellen | `gh pr create` | `create_pull_request` | manuell |
+| CI-Status prüfen | `gh run list` | `pull_request_read` (`get_check_runs`), `actions_list` | github.com |
+| Default-Branch / Archivstatus | `gh repo view --json isArchived,defaultBranchRef` | `list_branches`, `search_repositories` | `git ls-remote --symref origin HEAD` |
+| Release | `gh release create` | kein Tool → Tag pushen, Release manuell | Tag pushen, Release manuell |
+| Secret Scanning aktivieren | `gh api -X PATCH …` (9.6) | `run_secret_scanning` scannt, aktiviert aber nicht → Settings-UI | Settings-UI |
+
+Was ein Backend nicht kann, wird **als offener Punkt in `repo-meta.yml`
+vermerkt** und beim nächsten Durchlauf mit `gh` nachgezogen — nicht stillschweigend
+übergangen. Alle `gh`-Blöcke in den Schritten 10–12 setzen Backend A voraus.
 
 ---
 
 ## Schritt 0: Session-Intake — Metadaten einmal vollständig erfassen
 
-**Regel: Titel, Description und Topics werden pro Projekt genau einmal erfragt — gebündelt, am Anfang, bevor irgendeine Datei geschrieben wird.** Nicht verstreut über die Session, nicht Feld für Feld, nicht in jedem Folgeschritt erneut.
+**Titel, Description und Topics werden pro Projekt genau einmal erfragt** —
+gebündelt in einer Nachricht, bevor die erste Datei geschrieben wird. Nicht
+verstreut über die Session, nicht Feld für Feld, nicht in jedem Folgeschritt neu.
 
 ### 0.1 Zuerst suchen, dann fragen
 
-Nie nach etwas fragen, das bereits vorliegt. Quellen in dieser Reihenfolge prüfen:
-
 | Prio | Quelle | Wie |
 |---|---|---|
-| 1 | Angaben des Users in dieser Session | Aus dem Verlauf übernehmen |
-| 2 | `.github/repo-meta.yml` im Projekt | Datei lesen → alles bereits erfasst |
-| 3 | Bestehendes GitHub-Repo | `gh repo view {user}/{repo} --json name,description,repositoryTopics,visibility` |
-| 4 | Projektdateien | `pyproject.toml`, `package.json`, `SKILL.md`-Frontmatter, bestehendes README, `LICENSE` |
-| 5 | Codebase | Projekttyp, Sprache und Zweck aus dem Code ableiten → Vorschlag bauen |
+| 1 | Angaben des Users in dieser Session | aus dem Verlauf übernehmen |
+| 2 | `.github/repo-meta.yml` | Datei lesen → alles bereits erfasst |
+| 3 | Bestehendes Repo | `gh repo view {user}/{repo} --json name,description,repositoryTopics,visibility,defaultBranchRef` (Backend A) |
+| 4 | Projektdateien | `pyproject.toml`, `server.json`, `package.json`, SKILL-Frontmatter, bestehendes README, `LICENSE` |
+| 5 | Codebase | Projekttyp, Sprache und Zweck ableiten → Vorschlag bauen |
 
 ### 0.2 Intake-Block — alles in EINER Nachricht
 
-Für jedes fehlende Feld einen **konkreten Vorschlag** liefern, damit der User nur bestätigt oder korrigiert. Keine offene Frage stellen, wo aus dem Code ein Vorschlag ableitbar ist.
+Zu jedem fehlenden Feld einen **konkreten Vorschlag** liefern, damit der User nur
+bestätigt oder korrigiert. Keine offene Frage, wo aus dem Code ein Vorschlag
+ableitbar ist.
 
-| Feld | Pflicht | Default / Ableitung | Beispiel |
-|---|---|---|---|
-| `repo_name` | ja | Namenskonvention aus Schritt 1 | `fedlex-mcp` |
-| `title` | ja | Repo-Name in Title Case | `Fedlex MCP Server` |
-| `description` | ja | Aus Zweck des Codes, max. 100 Zeichen, EN, ohne Schlusspunkt | `MCP server for Swiss federal law data from Fedlex` |
-| `topics` | ja | 5–8, Regeln aus Schritt 1 | `mcp, model-context-protocol, swiss-open-data, python, llm` |
-| `project_type` | ja | Erkennung aus Schritt 1 | `mcp-server` |
-| `visibility` | ja | `public` | `public` |
-| `license` | nein | `MIT` | `MIT` |
-| `author_name` | nein | Aus `git config user.name` | `malkreide` |
-| `github_user` | nein | Aus `gh api user --jq .login` | `malkreide` |
-| `language` | nein | Aus Projektdateien | `python` |
-| `version` | nein | `1.0.0` bei Erstrelease | `1.0.0` |
+| Feld | Pflicht | Default / Ableitung |
+|---|---|---|
+| `repo_name` | ja | Namenskonvention aus Schritt 1 |
+| `title` | ja | Repo-Name in Title Case |
+| `description` | ja | Zweck des Codes, max. 100 Zeichen, EN, ohne Schlusspunkt |
+| `topics` | ja | 5–8, Regeln aus Schritt 1 |
+| `project_type` | ja | Erkennung aus Schritt 1 |
+| `visibility` | ja | `public` |
+| `license` | nein | `MIT` |
+| `author_legal_name` | nein | `git config user.name` — steht im Copyright (Schritt 5) |
+| `author_label` | nein | Selbstbezeichnung im deutschen README: `Autor` / `Autorin` / `Autor·in`. Einmal festlegen, **nie** angleichen (Regel D1) |
+| `github_user` | nein | `gh api user --jq .login` |
+| `default_branch` | nein | `main` — nicht raten, prüfen (Regel E5) |
+| `language` | nein | aus Projektdateien |
+| `version` | nein | `1.0.0` |
+| `pypi_package` | nur PyPI | Paketname, identisch in `pyproject.toml` |
+| `mcp_name` | nur MCP | `io.github.<github_user>/<server>` für den README-Marker (A1) |
 
-**Fragestil:**
-- Steht `AskUserQuestion` zur Verfügung: für Auswahlfelder (`visibility`, `license`, `project_type`) nutzen — mit dem abgeleiteten Wert als erster Option.
-- Freitextfelder (`title`, `description`, `topics`) in derselben Nachricht als bestätigbare Vorschlagsliste ausgeben.
-- Sagt der User «mach einfach» / «passt so»: alle Vorschläge übernehmen, nicht nachfragen — die finale Zusammenfassung in Schritt 0.4 dient als Kontrolle.
+**Fragestil:** Steht `AskUserQuestion` zur Verfügung, damit die Auswahlfelder
+(`visibility`, `license`, `project_type`) abfragen — abgeleiteter Wert als erste
+Option. Freitextfelder in derselben Nachricht als bestätigbare Vorschlagsliste.
+Sagt der User «mach einfach»: Vorschläge übernehmen, `confirmed: false` setzen
+und am Schluss die Zusammenfassung aus 0.4 zeigen.
 
 ### 0.3 Antworten festhalten — `.github/repo-meta.yml`
 
-Sofort nach dem Intake schreiben. Diese Datei ist ab dann die **einzige Quelle der Wahrheit**; alle Folgeschritte lesen daraus statt erneut zu fragen.
+Sofort nach dem Intake schreiben. Ab dann **einzige Quelle der Wahrheit**; alle
+Folgeschritte lesen daraus, statt erneut zu fragen.
 
 ```yaml
 # .github/repo-meta.yml — von der github-repo Skill gepflegt
 repo_name: fedlex-mcp
 title: Fedlex MCP Server
 description: MCP server for Swiss federal law data from Fedlex
-topics:
-  - mcp
-  - model-context-protocol
-  - swiss-open-data
-  - python
-  - llm
+topics: [mcp, model-context-protocol, swiss-open-data, python, llm]
 project_type: mcp-server
 visibility: public
 license: MIT
-author_name: malkreide
+author_legal_name: Vorname Nachname
+author_label: Autor·in
 github_user: malkreide
+default_branch: main
 language: python
 version: 1.0.0
-confirmed: true      # false = aus Vorschlägen übernommen, noch nicht bestätigt
+pypi_package: fedlex-mcp
+mcp_name: io.github.malkreide/fedlex-mcp
+confirmed: true          # false = aus Vorschlägen übernommen, unbestätigt
+offen:                   # was das aktuelle Backend nicht setzen konnte
+  - topics (Backend B: kein MCP-Tool — Settings-UI oder später mit gh)
 ```
 
-Ändert sich später ein Wert, **Datei aktualisieren** — nicht erneut von vorne fragen. In einer neuen Session ist das Lesen dieser Datei der erste Schritt.
+Ändert sich später ein Wert: **Datei aktualisieren**, nicht neu fragen. In einer
+neuen Session ist das Lesen dieser Datei der erste Schritt.
 
 ### 0.4 Gate und Verwendung
 
-Erst weiter zu Schritt 2, wenn alle Pflichtfelder gesetzt sind. Danach Zusammenfassung ausgeben (Name · Description · Topics · Visibility) und die Werte konsequent wiederverwenden:
+Erst weiter zu Schritt 2, wenn alle Pflichtfelder gesetzt sind. Danach
+Zusammenfassung ausgeben (Name · Description · Topics · Visibility) und die Werte
+konsequent wiederverwenden:
 
 | Feld | Wird verwendet in |
 |---|---|
-| `repo_name` | Verzeichnisname, README-H1, `gh repo create` |
-| `title` | README-H1 (falls abweichend vom Repo-Namen), Release-Titel |
-| `description` | `gh repo create --description`, README-One-Liner, README.de.md |
-| `topics` | `gh repo edit --add-topic` (Schritt 8) |
-| `visibility` | `gh repo create --public` / `--private` |
-| `license`, `author_name` | LICENSE (Schritt 5), README-Author-Sektion |
-| `version` | Badge, CHANGELOG, Git-Tag (Schritt 10) |
+| `repo_name` | Verzeichnisname, README-H1, Repo-Anlage (Schritt 10) |
+| `title` | README-H1 falls abweichend, Release-Titel |
+| `description` | Repo-Description, README-One-Liner, `server.json` (≤ 100 Zeichen) |
+| `topics` | Topics setzen (Schritt 10) |
+| `visibility` | `--public` / `--private` |
+| `license`, `author_legal_name` | LICENSE (Schritt 5) |
+| `author_label` | `## Autor·in` in `README.de.md` (Schritt 4) |
+| `default_branch` | Push- und Workflow-Trigger (Schritt 8, 11) |
+| `mcp_name` | README-Marker (Schritt 3) |
+| `version`, `pypi_package` | Badge, CHANGELOG, Tag, Release-Gate (Schritt 12) |
 
 ---
 
 ## Schritt 1: Projekttyp und Metadaten bestimmen
 
-Regeln für die **Vorschläge** aus dem Intake (Schritt 0.2). Liegen die Werte bereits in `.github/repo-meta.yml`, ist dieser Schritt übersprungen.
-
-Erkenne den Projekttyp aus dem Kontext oder frage nach:
+Regeln für die **Vorschläge** aus dem Intake (0.2). Liegen die Werte bereits in
+`.github/repo-meta.yml`, ist dieser Schritt übersprungen.
 
 | Typ | Erkennungsmerkmale |
 |---|---|
@@ -105,220 +176,134 @@ Erkenne den Projekttyp aus dem Kontext oder frage nach:
 | `python-lib` | Python-Package, Library, Module |
 | `other` | Alles andere |
 
-**Repo-Metadaten vorschlagen** (nur für Felder, die Schritt 0.1 nicht geliefert hat):
+**Repo-Metadaten vorschlagen** (nur für Felder, die 0.1 nicht geliefert hat):
 
-- **Name**: `kebab-case`, präzise, kein "my-" Präfix
-  - MCP: `{service}-mcp` (z.B. `fedlex-mcp`, `swiss-transport-mcp`)
-  - Skill: `{name}-skill` (z.B. `github-repo-skill`)
-  - Pi: `{function}-pi` (z.B. `classroom-sensor-pi`)
-- **Description**: Max. 100 Zeichen, Englisch, ohne Punkt am Ende
-- **Topics/Tags**: 5–8 Stück, lowercase, relevant für Auffindbarkeit
-  - Immer dabei: Projekttyp-Tag + Sprachtag (z.B. `python`, `typescript`)
-  - Für MCP: `mcp`, `model-context-protocol`, `llm`
-  - Für Skill: `claude`, `anthropic`, `prompt-engineering`
-  - Für Pi: `raspberry-pi`, `edge-ai`, `iot`
-  - Spezifische Tags: Thema/Domain (z.B. `swiss-open-data`, `education`)
+- **Name**: `kebab-case`, präzise, kein `my-` Präfix
+  - MCP: `{service}-mcp` · Skill: `{name}-skill` · Pi: `{function}-pi`
+- **Description**: max. 100 Zeichen, Englisch, ohne Punkt am Ende
+  - Bei MCP-Servern gilt dieselbe Grenze für `server.json` → `description`. Die Registry lehnt längere mit `422 expected length <= 100` ab, und zwar erst **nach** dem PyPI-Upload.
+- **Topics/Tags**: 5–8, lowercase
+  - Immer: Projekttyp-Tag + Sprachtag (`python`, `typescript`)
+  - MCP: `mcp`, `model-context-protocol`, `llm` · Skill: `claude`, `anthropic`, `prompt-engineering` · Pi: `raspberry-pi`, `edge-ai`, `iot`
+  - Domain-Tags: `swiss-open-data`, `education`
 
 ---
 
 ## Schritt 2: Dateistruktur erstellen
 
-### Pflichtdateien (immer)
+### Pflichtdateien
 
 ```
 repo-name/
-├── README.md           ← Englisch (Hauptdatei)
-├── README.de.md        ← Deutsch (verlinkt mit README.md)
-├── LICENSE             ← MIT (Standard) oder nach Vorgabe
-├── .gitignore          ← Projekttyp-spezifisch
-└── CHANGELOG.md        ← Versionsverlauf
+├── README.md           ← Englisch (Hauptdatei, enthält den mcp-name-Marker)
+├── README.de.md        ← Deutsch
+├── LICENSE             ← MIT (Standard), bürgerlicher Name im Copyright
+├── .gitignore          ← aus assets/gitignore/
+└── CHANGELOG.md
 ```
 
-### Optionale Dateien (nach Bedarf)
+### Wenn die Datei erzeugt wird, gehört der Verweis ins README
+
+Häufigster Mangel im Durchlauf über 43 Repos: **10 Repos hatten eine
+`SECURITY.md`, auf die kein README verwies** — für Besucher der Startseite also
+unerreichbar. Dasselbe bei `CONTRIBUTING.md`. Datei anlegen genügt nicht.
 
 ```
-├── CONTRIBUTING.md     ← Falls externe Beiträge erwünscht
-├── .github/
-│   ├── repo-meta.yml   ← Intake-Ergebnis aus Schritt 0 (empfohlen)
-│   └── ISSUE_TEMPLATE/ ← Falls Issue-Tracking gewünscht
-└── docs/               ← Erweiterte Dokumentation
+├── SECURITY.md         ← verlinkt aus der Sektion Security / Sicherheit
+├── CONTRIBUTING.md     ← verlinkt aus Contributing / Mitwirken
+├── docs/demo.png       ← wenn vorhanden: in BEIDEN Sprachfassungen einbinden
+└── .github/workflows/  ← ci.yml, publish.yml aus assets/workflows/
+```
+
+### Zusätzlich bei MCP-Servern
+
+```
+├── server.json         ← name, version, description (≤ 100 Zeichen)
+├── pyproject.toml      ← readme = "README.md", version identisch zu server.json
+└── scripts/check_release_artifacts.py
 ```
 
 ---
 
-## Schritt 3: README.md (Englisch) erstellen
+## Schritt 3: README.md (Englisch)
 
-**Struktur – verpflichtend in dieser Reihenfolge:**
+Vorlage: `assets/templates/README.md`. Struktur verpflichtend, Schluss-Sektionen
+in dieser Reihenfolge:
 
-```markdown
-# {Repo Name}
-
-{Badges: Version | License | Last Commit | Language}
-
-> {One-liner description — max. 1 Satz}
-
-[🇩🇪 Deutsche Version](README.de.md)
-
-## Overview
-
-{Was macht das Projekt? Warum existiert es? 2–4 Sätze}
-
-## Features
-
-- Feature 1
-- Feature 2
-
-## Prerequisites
-
-{Was muss installiert/vorhanden sein?}
-- Item 1 (Version X+)
-- Item 2
-
-## Installation
-
-\`\`\`bash
-{Konkrete Installationsbefehle}
-\`\`\`
-
-## Usage / Quickstart
-
-\`\`\`bash
-{Minimales Beispiel das sofort funktioniert}
-\`\`\`
-
-## Configuration
-
-{Falls vorhanden: Umgebungsvariablen, Config-Files}
-
-## Project Structure
-
-\`\`\`
-{Verzeichnisstruktur mit Kommentaren}
-\`\`\`
-
-## Changelog
-
-See [CHANGELOG.md](CHANGELOG.md)
-
-## License
-
-MIT License — see [LICENSE](LICENSE)
-
-## Author
-
-{Name} · [{GitHub}](https://github.com/{username})
+```
+Contributing → Security → License → Author
 ```
 
-**Badges-Vorlage:**
+**Regeln:**
+
+- **`mcp-name`-Marker** direkt unter dem Titel, bei jedem MCP-Server:
+  `<!-- mcp-name: io.github.<user>/<server> -->`
+  Er muss in der Datei stehen, die `pyproject.toml` als `readme` deklariert —
+  ein Marker nur in `README.de.md` zählt nicht. Details: `references/mcp-publishing.md`.
+- **Author als Überschrift** (`## Author`), nicht als Fettdruck (`**Author**`).
+  Fettdruck sieht gleich aus, erzeugt aber keine Gliederungsebene.
+- **Keine Emoji in Überschriften.** Im Fliesstext (Sprachumschalter, Warnhinweise) sind sie in Ordnung.
+- **Demo**: `### Demo` plus Bild. Die referenzierte Datei muss existieren, und der Abschnitt gehört in **beide** Sprachfassungen.
+- **Tool-Tabelle**: die **registrierten** Namen verwenden. Bei
+  `@mcp.tool(name="gazette_get_publication")` heisst die Funktion trotzdem
+  `get_publication` — der registrierte Name gehört ins README.
+
+**Badges:**
+
 ```markdown
 ![Version](https://img.shields.io/badge/version-1.0.0-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
-![Python](https://img.shields.io/badge/python-3.9+-blue)
+![Python](https://img.shields.io/badge/python-3.10+-blue)
 ```
 
 ---
 
-## Schritt 4: README.de.md (Deutsch) erstellen
+## Schritt 4: README.de.md (Deutsch)
 
-**Identische Struktur wie README.md**, aber:
-- Alle Texte auf Deutsch (Schweizer Rechtschreibung: kein ß → ss)
-- Header-Zeile am Anfang:
+Vorlage: `assets/templates/README.de.md`. Identische Struktur, aber:
 
-```markdown
-[🇬🇧 English Version](README.md)
-```
+- Schweizer Rechtschreibung: kein `ß` → `ss`
+- Kopfzeile `🇬🇧 [English Version](README.md)`
+- Technische Begriffe, Befehle und Code-Blöcke bleiben englisch
+- **Überschriften werden eingedeutscht** — eine englische Überschrift in einer
+  sonst durchgehend deutschen Datei ist ein Fehler (kam zweimal vor):
 
-- Technische Begriffe, Befehle, Code-Blöcke bleiben auf Englisch
-- Sektionen-Titel können eingedeutscht werden:
-  - Overview → Übersicht
-  - Features → Funktionen
-  - Prerequisites → Voraussetzungen
-  - Installation → Installation (gleich)
-  - Usage → Verwendung
-  - Configuration → Konfiguration
-  - Project Structure → Projektstruktur
+| EN | DE |
+|---|---|
+| Overview | Übersicht |
+| Features | Funktionen |
+| Prerequisites | Voraussetzungen |
+| Usage | Verwendung |
+| Configuration | Konfiguration |
+| Project Structure | Projektstruktur |
+| Contributing | Mitwirken (auch: Mitmachen, Beitragen) |
+| Security | Sicherheit |
+| License | Lizenz |
+| Author | Autor / Autorin / Autor·in |
 
----
-
-## Schritt 5: LICENSE erstellen
-
-**MIT License (Standard):**
-
-```
-MIT License
-
-Copyright (c) {YEAR} {AUTHOR_NAME}
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-```
+Die Varianten in den letzten drei Zeilen sind gleichwertig. Bei einem
+bestehenden Repo wird die gewählte Variante **nicht** angeglichen — siehe
+`references/review-rules.md`.
 
 ---
 
-## Schritt 6: .gitignore erstellen
+## Schritt 5: LICENSE
 
-Wähle nach Projekttyp:
+`assets/LICENSE-MIT.txt` kopieren, `{YEAR}` und `{AUTHOR_LEGAL_NAME}` ersetzen.
 
-**Python / MCP-Server:**
-```
-__pycache__/
-*.py[cod]
-*.egg-info/
-dist/
-build/
-.env
-.venv/
-venv/
-*.log
-.DS_Store
-```
-
-**Node.js / TypeScript:**
-```
-node_modules/
-dist/
-.env
-*.log
-.DS_Store
-```
-
-**Raspberry Pi (Python-basiert):**
-```
-__pycache__/
-*.py[cod]
-.env
-*.log
-.DS_Store
-/data/
-/logs/
-*.sqlite
-```
-
-**Claude SKILL:**
-```
-.DS_Store
-*.log
-/tmp/
-```
+Im Copyright steht der **bürgerliche Name**, nicht der GitHub-Handle.
 
 ---
 
-## Schritt 7: CHANGELOG.md erstellen
+## Schritt 6: .gitignore
+
+Passende Datei aus `assets/gitignore/` kopieren
+(`python`, `node`, `raspberry-pi`, `claude-skill`). Alle Varianten enthalten
+bereits die Secret-Muster aus Schritt 9.
+
+---
+
+## Schritt 7: CHANGELOG.md
 
 ```markdown
 # Changelog
@@ -334,197 +319,314 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Initial release
-- {Feature 1}
-- {Feature 2}
 ```
 
-**Semantic Versioning Konvention:**
-- `MAJOR.MINOR.PATCH`
-- PATCH (1.0.**1**): Bugfixes, keine neuen Features
-- MINOR (1.**1**.0): Neue Features, rückwärtskompatibel
-- MAJOR (**2**.0.0): Breaking Changes
+**SemVer:** PATCH = Bugfix · MINOR = neues Feature, rückwärtskompatibel ·
+MAJOR = Breaking Change.
 
 ---
 
-## Schritt 8: gh CLI — Repo erstellen und konfigurieren
+## Schritt 8: Python- und CI-Konfiguration
 
-### Voraussetzungen prüfen
-```bash
-# gh installiert?
-gh --version
+Diese drei Punkte verursachen CI-Fehler, die **ohne Codeänderung** auftreten
+oder Fehler durchlassen.
 
-# Eingeloggt?
-gh auth status
+### 8.1 Linter-Regelsatz explizit pinnen
 
-# Falls nicht: Login
-gh auth login
+Ohne `[tool.ruff.lint] select` gilt ruffs Default-Regelsatz — und der ändert
+sich zwischen Releases. Mit `ruff>=0.4.0` ohne Obergrenze installiert die CI die
+jeweils neuste Version. Ein Repo war fünf Tage nach dem letzten grünen Lauf rot,
+ohne dass sich eine Zeile geändert hatte.
+
+```toml
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP"]
+ignore = ["E501"]
 ```
 
-### Neues Repo erstellen
+Und in der CI mit Obergrenze installieren: `pip install "ruff>=0.6,<0.7"`.
 
-Alle Platzhalter unten stammen aus `.github/repo-meta.yml` (Schritt 0) — an dieser Stelle nicht erneut nachfragen.
+### 8.2 Subprojekte erben nichts
 
-```bash
-# Lokal: Git initialisieren (falls noch nicht)
-cd /pfad/zu/projekt
-git init
-git add .
-git commit -m "Initial commit: {kurze Beschreibung}"
+Ein Unterverzeichnis mit eigener `pyproject.toml` und eigenem
+`[tool.ruff]`-Block ignoriert die Wurzelkonfiguration **vollständig**. Jedes
+Subprojekt braucht seinen eigenen `select`-Block. Bei Monorepos beim
+Scaffolding mitgenerieren; `assets/workflows/ci.yml` lintet Subprojekte separat.
 
-# Repo auf GitHub erstellen und pushen
-gh repo create {repo-name} \
-  --public \
-  --description "{Description max. 100 Zeichen}" \
-  --source=. \
-  --remote=origin \
-  --push
+### 8.3 Keine blinden Assertions in Tests
 
-# Alternativ: Privates Repo
-gh repo create {repo-name} \
-  --private \
-  --description "{Description}" \
-  --source=. \
-  --remote=origin \
-  --push
+`pytest.raises(Exception)` um eine Pydantic-Konstruktion besteht auch bei einem
+Tippfehler im Modellnamen. Immer die konkrete Exception:
+
+```python
+with pytest.raises(ValidationError):
+    ...
 ```
 
-### Topics/Tags setzen (nach Repo-Erstellung)
+### 8.4 Workflows kopieren
+
+`assets/workflows/ci.yml` und — bei Python-Paketen — `publish.yml` nach
+`.github/workflows/`. `ci.yml` triggert auf `main` **und** `master`.
+
+---
+
+## Schritt 9: Secrets-Check vor dem ersten Push
+
+**Verbindlich, auch bei privaten Repos** — die Sichtbarkeit lässt sich später
+ändern, die Git-History nicht.
+
+### 9.1 Ignore-Regeln vor dem ersten `git add`
+
+`.gitignore` muss mindestens `.env`, `.env.*`, `*.key`, `*.pem`,
+`credentials.json`, `secrets.yaml`, `config.local.*` abdecken (in
+`assets/gitignore/` enthalten). Dann prüfen, was tatsächlich getrackt würde:
 
 ```bash
-gh repo edit {username}/{repo-name} \
-  --add-topic {topic1} \
-  --add-topic {topic2} \
-  --add-topic {topic3}
-
-# Beispiel MCP-Server:
-gh repo edit malkreide/fedlex-mcp \
-  --add-topic mcp \
-  --add-topic model-context-protocol \
-  --add-topic swiss-open-data \
-  --add-topic python \
-  --add-topic llm
+git add -A --dry-run | head -50
 ```
 
-### Repo-Details anzeigen
+### 9.2 Automatisierter Scan
+
 ```bash
-gh repo view {username}/{repo-name}
+gitleaks detect --source . --no-git --redact --verbose   # Arbeitsverzeichnis
+gitleaks detect --source . --redact --verbose            # gesamte History
+```
+
+Exit-Code `0` = sauber, `1` = Findings. **Bei Findings: nicht pushen.**
+
+### 9.3 Manueller Kontroll-Check
+
+```bash
+git grep -nEI '(api[_-]?key|secret|passwo?rd|token|bearer|BEGIN [A-Z ]*PRIVATE KEY)' | head -30
+git config user.name && git config user.email    # welche Adresse wird publiziert?
+```
+
+### 9.4 Kontextspezifische Prüfung (öffentliche Verwaltung)
+
+- [ ] Keine Personendaten in Code, Testdaten oder Fixtures
+- [ ] Keine internen Hostnames, IP-Ranges, Pfade oder Systembezeichnungen
+- [ ] Keine internen Dokumente oder Auszüge daraus in `docs/`
+- [ ] Testdaten synthetisch, nicht kopierte Echtdaten
+- [ ] Commit-Messages ohne Ticketinhalte oder Klarnamen Dritter
+
+### 9.5 Wenn ein Secret bereits committet wurde
+
+1. **Zuerst rotieren.** Ein gepushtes Secret gilt als kompromittiert — auch nach dem Löschen (Forks, Caches, Crawler).
+2. Danach History bereinigen: `git filter-repo --path .env --invert-paths`
+3. Force-Push, alle Klone neu ziehen lassen.
+
+`git rm` oder ein Folge-Commit entfernt das Secret **nicht** aus der History.
+
+### 9.6 Schutz auf GitHub aktivieren
+
+```bash
+gh api -X PATCH repos/{owner}/{repo} \
+  -f 'security_and_analysis[secret_scanning][status]=enabled' \
+  -f 'security_and_analysis[secret_scanning_push_protection][status]=enabled'
 ```
 
 ---
 
-## Schritt 9: Update-Workflow nach Commits
+## Schritt 10: Repo erstellen und konfigurieren
 
-**Standard-Commit-Ablauf:**
+Alle Platzhalter stammen aus `.github/repo-meta.yml` (Schritt 0) — hier nicht
+erneut nachfragen. Der folgende Block setzt **Backend A** voraus; für B und C
+gilt die Mapping-Tabelle oben.
 
 ```bash
-# 1. Änderungen hinzufügen
-git add .
+gh --version && gh auth status          # Voraussetzungen
 
-# 2. Commit mit konventioneller Nachricht
+git init && git add . && git commit -m "Initial commit: {Beschreibung}"
+
+gh repo create {repo-name} \
+  --public \                            # oder --private
+  --description "{max. 100 Zeichen}" \
+  --source=. --remote=origin --push
+
+gh repo edit {user}/{repo} --add-topic mcp --add-topic python --add-topic llm
+```
+
+**Bei MCP-Servern jetzt den Pending Publisher auf PyPI anlegen** — vor dem
+ersten Workflow-Lauf. Felder und Fallstricke: `references/mcp-publishing.md` (A3).
+
+---
+
+## Schritt 11: Update-Workflow nach Commits
+
+```bash
+git add .
 git commit -m "{type}: {kurze Beschreibung}"
-
-# 3. Pushen
-git push origin main
+git push origin "$(git symbolic-ref --quiet refs/remotes/origin/HEAD | sed 's|.*/||')"
 ```
 
-**Conventional Commits — Typen:**
-| Typ | Verwendung |
-|---|---|
-| `feat` | Neues Feature |
-| `fix` | Bugfix |
-| `docs` | Nur Dokumentation |
-| `refactor` | Code-Umstrukturierung |
-| `test` | Tests hinzufügen/ändern |
-| `chore` | Build, Abhängigkeiten, Konfiguration |
+Der Default-Branch ist **nicht immer `main`** — drei Repos nutzen `master`.
+
+**Conventional Commits:** `feat` · `fix` · `docs` · `refactor` · `test` · `chore`
+
+### 11.1 Web- und Remote-Sessions: Branch statt direktem Push
+
+In Claude Code auf dem Web läuft jede Änderung über Branch → Push → Draft-PR.
+Ein direkter Push auf den Default-Branch ist dort weder vorgesehen noch immer
+erlaubt.
+
+```bash
+git checkout -b {branch-name}
+git add -A && git commit -m "{type}: {Beschreibung}"
+git push -u origin {branch-name}
+```
+
+- **Draft-PR eröffnen**, sobald der Branch gepusht ist — Backend A: `gh pr create --draft`, Backend B: `create_pull_request` mit `draft: true`.
+- **PR-Template prüfen** (`.github/pull_request_template.md`, `.github/PULL_REQUEST_TEMPLATE.md`, Wurzel, `docs/`) und dessen Sektionen übernehmen, falls vorhanden.
+- **Push-Fehler durch Netzwerk**: bis zu vier Versuche mit 2 s, 4 s, 8 s, 16 s Wartezeit. Ein `403` ohne Netzwerkfehler ist meist ein archiviertes Repo (F2), keine fehlende Berechtigung.
+- **Der Container ist ephemer.** Nicht gepushte Arbeit ist nach Sessionende verloren — vor dem Abschluss committen und pushen.
+- **Ist der PR eines Branches bereits gemergt**, wird für Folgearbeit nicht auf der gemergten History weitergebaut: Branch vom aktuellen Default-Branch neu aufsetzen (`git checkout -B {branch} origin/{default}`) und einen neuen PR eröffnen.
 
 **Nach jedem relevanten Commit:**
-1. `CHANGELOG.md` → Eintrag unter `[Unreleased]` hinzufügen
-2. README aktualisieren falls Funktionen/Struktur geändert
-3. Badge-Versionsnummer ggf. anpassen
+
+1. `CHANGELOG.md` → Eintrag unter `[Unreleased]`
+2. README aktualisieren, falls Funktionen oder Struktur geändert haben
+3. Bei README-Änderungen: Marker-Anzahl vorher/nachher vergleichen
+   (`grep -c 'mcp-name:' README.md`) — ein Blockverschieben am Dateiende hat den
+   Marker einmal stillschweigend mitgerissen
+4. `python3 scripts/validate_repo.py .`
 
 ---
 
-## Schritt 10: Release erstellen
+## Schritt 12: Release erstellen
+
+**Vorher:** `python3 scripts/validate_repo.py .` muss ohne ERROR durchlaufen.
+Bei MCP-Servern zusätzlich `references/mcp-publishing.md` lesen.
 
 ```bash
-# 1. CHANGELOG: [Unreleased] → [1.x.x] - DATUM umbenennen
-# (manuell oder mit sed)
+VERSION=1.0.0
 
-# 2. Git Tag erstellen und pushen
-git tag -a v1.0.0 -m "Release v1.0.0: {kurze Beschreibung}"
-git push origin v1.0.0
+# 1. CHANGELOG: [Unreleased] → [VERSION] - DATUM
+sed -i '' "s/^## \[Unreleased\]/## [Unreleased]\n\n## [$VERSION] - $(date +%F)/" CHANGELOG.md
+# Linux: sed -i "s/..."   ·   portabel: perl -pi -e
 
-# 3. GitHub Release erstellen (aus CHANGELOG generieren)
-gh release create v1.0.0 \
-  --title "v1.0.0 — {Release-Titel}" \
-  --notes-file CHANGELOG.md \
-  --latest
+# 2. Version in pyproject.toml und server.json angleichen (müssen identisch sein)
 
-# 4. Badge in README aktualisieren
-# version-1.0.0 → version-1.1.0
+# 3. Tag setzen
+git tag -a "v$VERSION" -m "Release v$VERSION: {Beschreibung}"
+git push origin "v$VERSION"
+
+# 4. Nur den Abschnitt DIESER Version extrahieren
+awk -v v="## [$VERSION]" '
+  index($0, v) == 1 { flag = 1; next }
+  flag && /^## \[/  { exit }
+  flag              { print }
+' CHANGELOG.md > /tmp/release-notes.md
+test -s /tmp/release-notes.md || { echo "FEHLER: kein CHANGELOG-Abschnitt für $VERSION"; exit 1; }
+
+# 5. GitHub Release
+gh release create "v$VERSION" \
+  --title "v$VERSION — {Titel}" \
+  --notes-file /tmp/release-notes.md --latest
+
+# 6. Badge in README.md UND README.de.md aktualisieren
 ```
+
+**Warum nicht `--notes-file CHANGELOG.md`:** das hängt den gesamten
+Versionsverlauf an jeden Release. Alternative ohne CHANGELOG-Pflege:
+`gh release create "v$VERSION" --generate-notes`.
+
+**Wenn der Publish-Workflow fehlschlägt:** einen alten Tag-Lauf **nicht**
+erneut starten — ein Re-Run checkt den alten Commit aus und reproduziert
+denselben Fehler. Stattdessen `workflow_dispatch` auf dem Default-Branch oder
+einen neuen Tag setzen.
+
+---
+
+## Bestehende Repos bearbeiten
+
+**Zuerst `references/review-rules.md` lesen.** Diese Regeln haben jeweils eine
+falsche Änderung oder einen Fehlalarm verhindert:
+
+| Regel | Kurzfassung |
+|---|---|
+| D1 | Selbstbezeichnungen (`Autor`, `Autorin`, `Autor·in`) nie umschreiben |
+| D2 | Präzisere Titel (`Software Licence`, `Security & Compliance`) behalten |
+| D3 | Deutsche Synonyme sind alle legitim — nur englische Titel in deutschen Dateien sind falsch |
+| E1 | Tool-Namen gegen den registrierten Namen prüfen, nicht gegen `def` |
+| E2 | Bilder in `![]()` **und** `<img src="">` suchen, Badges herausfiltern |
+| E3 | Überschriften exakt vergleichen — `## Sicherheit & Grenzen` ≠ `## Sicherheit` |
+| E4 | Vor Emoji-Entfernung Anker-Links prüfen; Unicode-Bereiche eng fassen, sonst fallen Umlaute weg |
+| E5 | Default-Branch ist nicht immer `main` |
+| F2 | 403 beim Push: zuerst Archiv-Status prüfen, nicht Berechtigungen |
 
 ---
 
 ## Qualitätscheckliste
 
-Vor dem ersten Push / vor einem Release prüfen:
+`python3 scripts/validate_repo.py .` deckt die meisten Punkte automatisch ab.
 
-**README.md (EN)**
-- [ ] Alle Pflichtabschnitte vorhanden
-- [ ] Badges korrekt (Version, License)
-- [ ] Link zu README.de.md funktioniert
-- [ ] Installation-Befehl getestet / plausibel
-- [ ] Quickstart-Beispiel vorhanden
-
-**README.de.md**
-- [ ] Link zu README.md funktioniert
-- [ ] Alle Sektionen übersetzt
-- [ ] Schweizer Rechtschreibung (kein ß)
+**Blocker — ohne diese Punkte kein Push**
+- [ ] `gitleaks detect` ohne Findings
+- [ ] Keine Personendaten oder internen Systembezeichnungen im Repo
+- [ ] Commit-Identität (`user.email`) bewusst gewählt
+- [ ] Secret Scanning + Push Protection aktiviert
 
 **Session-Intake (Schritt 0)**
-- [ ] Alle Pflichtfelder erfasst — Titel, Description, Topics wurden genau einmal erfragt
+- [ ] Pflichtfelder erfasst — Titel, Description, Topics genau einmal erfragt
 - [ ] `.github/repo-meta.yml` vorhanden und aktuell (`confirmed: true`)
-- [ ] Werte in README, `gh repo create` und Topics identisch zur Intake-Datei
+- [ ] Werte in README, Repo-Description und Topics identisch zur Intake-Datei
+- [ ] Was das Backend nicht setzen konnte, steht unter `offen`
+
+**README (beide Sprachfassungen)**
+- [ ] Schluss-Sektionen in der Reihenfolge Contributing → Security → License → Author
+- [ ] `SECURITY.md` und `CONTRIBUTING.md` verlinkt, nicht nur vorhanden
+- [ ] `## Author` als Überschrift, nicht als Fettdruck
+- [ ] Keine Emoji in Überschriften
+- [ ] Demo in beiden Fassungen, referenzierte Datei existiert
+- [ ] Sprachumschalter in beiden Richtungen
+- [ ] DE: deutsche Überschriften, kein `ß`
+- [ ] Tool-Namen = registrierte Namen
 
 **Repo-Metadaten**
-- [ ] Description gesetzt (max. 100 Zeichen, Englisch)
-- [ ] Topics/Tags gesetzt (5–8 Stück)
-- [ ] LICENSE vorhanden
-- [ ] .gitignore passend zum Projekttyp
+- [ ] Description ≤ 100 Zeichen · Topics 5–8 · LICENSE mit bürgerlichem Namen · `.gitignore` passend
 
-**Versionierung**
-- [ ] CHANGELOG.md vollständig
-- [ ] Semantic Versioning eingehalten
-- [ ] Git Tag entspricht CHANGELOG-Version
+**CI**
+- [ ] `[tool.ruff.lint] select` explizit, in **jedem** pyproject
+- [ ] ruff mit Obergrenze gepinnt
+- [ ] Keine `pytest.raises(Exception)`
+
+**Release (MCP/PyPI)**
+- [ ] `mcp-name`-Marker in der als `readme` deklarierten Datei
+- [ ] `server.json` description ≤ 100 Zeichen
+- [ ] Version in pyproject = server.json = Tag
+- [ ] Pending Publisher angelegt, Environment-Name eingetragen
+- [ ] Release-Notes enthalten nur den Abschnitt dieser Version
 
 ---
 
-## Schnellreferenz: Häufige gh-Befehle
+## Troubleshooting
+
+| Symptom | Ursache | Vorgehen |
+|---|---|---|
+| `invalid-publisher: valid token, but no corresponding publisher` | Pending Publisher fehlt oder Environment-Feld leer | `references/mcp-publishing.md` → A3 |
+| `422 expected length <= 100` beim Registry-Publish | `server.json` description zu lang — fällt erst nach erfolgreichem PyPI-Upload auf | A2 |
+| Registry findet das Paket nicht | `mcp-name`-Marker fehlt im publizierten README | A1 |
+| Publish erfolgreich, `/pypi/<paket>/json` zeigt alte Version | JSON-API liefert gecachte Antworten | gegen `https://pypi.org/simple/<paket>/` prüfen (F1) |
+| Re-Run schlägt identisch fehl | alter Tag-Lauf checkt alten Commit aus | `workflow_dispatch` oder neuer Tag (A4) |
+| CI rot ohne Codeänderung | ruff-Default-Regelsatz hat sich geändert | `select` pinnen (8.1) |
+| Lint übersieht Subprojekt | eigene `pyproject.toml` erbt nichts | eigener `select` (8.2) |
+| `403` beim Push, Lesen geht | Repo archiviert | `gh repo view --json isArchived` (F2) |
+| `gh: command not found` | Web-/Remote-Session ohne CLI | Backend B oder C, siehe Mapping-Tabelle oben |
+| Topics lassen sich nicht setzen | Backend B hat kein Topic-Tool | Settings-UI, in `repo-meta.yml` unter `offen` vermerken |
+| Nach «Titel? Description? Tags?» in jeder Session | Schritt 0 übersprungen | `.github/repo-meta.yml` anlegen (0.3) |
+
+---
+
+## Schnellreferenz: gh (Backend A)
 
 ```bash
-# Repo anzeigen
-gh repo view
-
-# Topics anzeigen/bearbeiten
-gh repo edit --add-topic {topic}
-gh repo edit --remove-topic {topic}
-
-# Alle eigenen Repos auflisten
+gh repo view {user}/{repo}
+gh repo view {user}/{repo} --json isArchived,defaultBranchRef
+gh repo edit --add-topic {topic} / --remove-topic {topic}
 gh repo list
-
-# Repo klonen
-gh repo clone {username}/{repo-name}
-
-# Issue erstellen
-gh issue create --title "{Titel}" --body "{Beschreibung}"
-
-# Pull Request erstellen
-gh pr create --title "{Titel}" --body "{Beschreibung}"
-
-# Release auflisten
-gh release list
-
-# Letzten Release anzeigen
-gh release view
+gh issue create --title "{Titel}" --body "{Text}"
+gh pr create --title "{Titel}" --body "{Text}"
+gh release list / gh release view
+gh run list --workflow publish.yml
+gh run rerun {run-id}          # Achtung: checkt den alten Commit aus (A4)
 ```

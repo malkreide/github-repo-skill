@@ -1,0 +1,19 @@
+# .github/repo-meta.yml — von der github-repo Skill gepflegt (Schritt 0)
+# Einzige Quelle der Wahrheit für die Metadaten dieses Repos.
+# Ändert sich ein Wert: hier aktualisieren, nicht neu erfragen.
+repo_name: github-repo-skill
+title: GitHub Repo Skill
+description: Claude SKILL.md for creating and maintaining professional GitHub repositories
+topics: [claude, anthropic, claude-skill, prompt-engineering, github, documentation]
+project_type: claude-skill
+visibility: public
+license: MIT
+author_label: Autor
+github_user: malkreide
+default_branch: main
+language: markdown
+version: 1.1.0
+confirmed: false        # Vorschlagswerte aus dem Repo abgeleitet, noch nicht bestätigt
+offen:
+  - author_legal_name (für LICENSE-Copyright, siehe Schritt 5)
+  - topics gegen die Repo-Settings abgleichen
