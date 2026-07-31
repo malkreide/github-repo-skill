@@ -16,6 +16,7 @@ Der Skill ist für Entwicklerinnen und Entwickler konzipiert, die konsistente, g
 
 ## Funktionen
 
+- Einmaliger Session-Intake: Titel, Description und Topics werden einmal am Anfang gesammelt und in `.github/repo-meta.yml` festgehalten, statt in jedem Schritt neu erfragt zu werden
 - Automatische Projekttyp-Erkennung (MCP-Server, Claude Skill, Raspberry Pi, Python-Bibliothek)
 - Zweisprachige README-Generierung (Englisch als Hauptdatei + deutsche Übersetzung), gegenseitig verlinkt
 - Repository-Metadaten: Name, Description und Topics/Tags nach Konvention
@@ -67,8 +68,9 @@ github-repo-skill/
 
 ## Was der Skill abdeckt
 
-Der Skill führt durch 10 Schritte:
+Der Skill führt durch einen Intake-Schritt und 10 Arbeitsschritte:
 
+0. **Session-Intake** — Titel, Description, Topics, Visibility einmalig gebündelt erfassen und in `.github/repo-meta.yml` festhalten
 1. **Projekttyp-Erkennung** — MCP-Server, Claude Skill, Raspberry Pi, Python-Bibliothek
 2. **Repo-Metadaten** — Namenskonventionen, Description, Topics/Tags
 3. **README.md (EN)** — vollständiges Template mit Badges und allen Pflichtabschnitten

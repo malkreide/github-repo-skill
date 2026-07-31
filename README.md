@@ -16,6 +16,7 @@ The skill is designed for developers who want consistent, well-documented reposi
 
 ## Features
 
+- One-time session intake: title, description, and topics are collected once, up front, and persisted to `.github/repo-meta.yml` instead of being asked again in every step
 - Automatic project type detection (MCP server, Claude Skill, Raspberry Pi, Python library)
 - Bilingual README generation (English main + German translation), cross-linked
 - Repository metadata: name, description, and topics/tags per convention
@@ -67,8 +68,9 @@ github-repo-skill/
 
 ## What the Skill Covers
 
-The skill walks through 10 steps:
+The skill walks through an intake step and 10 working steps:
 
+0. **Session intake** — collect title, description, topics, and visibility once, bundled, and persist them to `.github/repo-meta.yml`
 1. **Project type detection** — MCP server, Claude Skill, Raspberry Pi, Python library
 2. **Repo metadata** — name conventions, description, topics/tags
 3. **README.md (EN)** — full template with badges, all required sections

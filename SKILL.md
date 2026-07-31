@@ -9,7 +9,91 @@ Erstellt vollständige, professionelle GitHub Repositories mit bilingualem READM
 
 ---
 
+## Schritt 0: Session-Intake — Metadaten einmal vollständig erfassen
+
+**Regel: Titel, Description und Topics werden pro Projekt genau einmal erfragt — gebündelt, am Anfang, bevor irgendeine Datei geschrieben wird.** Nicht verstreut über die Session, nicht Feld für Feld, nicht in jedem Folgeschritt erneut.
+
+### 0.1 Zuerst suchen, dann fragen
+
+Nie nach etwas fragen, das bereits vorliegt. Quellen in dieser Reihenfolge prüfen:
+
+| Prio | Quelle | Wie |
+|---|---|---|
+| 1 | Angaben des Users in dieser Session | Aus dem Verlauf übernehmen |
+| 2 | `.github/repo-meta.yml` im Projekt | Datei lesen → alles bereits erfasst |
+| 3 | Bestehendes GitHub-Repo | `gh repo view {user}/{repo} --json name,description,repositoryTopics,visibility` |
+| 4 | Projektdateien | `pyproject.toml`, `package.json`, `SKILL.md`-Frontmatter, bestehendes README, `LICENSE` |
+| 5 | Codebase | Projekttyp, Sprache und Zweck aus dem Code ableiten → Vorschlag bauen |
+
+### 0.2 Intake-Block — alles in EINER Nachricht
+
+Für jedes fehlende Feld einen **konkreten Vorschlag** liefern, damit der User nur bestätigt oder korrigiert. Keine offene Frage stellen, wo aus dem Code ein Vorschlag ableitbar ist.
+
+| Feld | Pflicht | Default / Ableitung | Beispiel |
+|---|---|---|---|
+| `repo_name` | ja | Namenskonvention aus Schritt 1 | `fedlex-mcp` |
+| `title` | ja | Repo-Name in Title Case | `Fedlex MCP Server` |
+| `description` | ja | Aus Zweck des Codes, max. 100 Zeichen, EN, ohne Schlusspunkt | `MCP server for Swiss federal law data from Fedlex` |
+| `topics` | ja | 5–8, Regeln aus Schritt 1 | `mcp, model-context-protocol, swiss-open-data, python, llm` |
+| `project_type` | ja | Erkennung aus Schritt 1 | `mcp-server` |
+| `visibility` | ja | `public` | `public` |
+| `license` | nein | `MIT` | `MIT` |
+| `author_name` | nein | Aus `git config user.name` | `malkreide` |
+| `github_user` | nein | Aus `gh api user --jq .login` | `malkreide` |
+| `language` | nein | Aus Projektdateien | `python` |
+| `version` | nein | `1.0.0` bei Erstrelease | `1.0.0` |
+
+**Fragestil:**
+- Steht `AskUserQuestion` zur Verfügung: für Auswahlfelder (`visibility`, `license`, `project_type`) nutzen — mit dem abgeleiteten Wert als erster Option.
+- Freitextfelder (`title`, `description`, `topics`) in derselben Nachricht als bestätigbare Vorschlagsliste ausgeben.
+- Sagt der User «mach einfach» / «passt so»: alle Vorschläge übernehmen, nicht nachfragen — die finale Zusammenfassung in Schritt 0.4 dient als Kontrolle.
+
+### 0.3 Antworten festhalten — `.github/repo-meta.yml`
+
+Sofort nach dem Intake schreiben. Diese Datei ist ab dann die **einzige Quelle der Wahrheit**; alle Folgeschritte lesen daraus statt erneut zu fragen.
+
+```yaml
+# .github/repo-meta.yml — von der github-repo Skill gepflegt
+repo_name: fedlex-mcp
+title: Fedlex MCP Server
+description: MCP server for Swiss federal law data from Fedlex
+topics:
+  - mcp
+  - model-context-protocol
+  - swiss-open-data
+  - python
+  - llm
+project_type: mcp-server
+visibility: public
+license: MIT
+author_name: malkreide
+github_user: malkreide
+language: python
+version: 1.0.0
+confirmed: true      # false = aus Vorschlägen übernommen, noch nicht bestätigt
+```
+
+Ändert sich später ein Wert, **Datei aktualisieren** — nicht erneut von vorne fragen. In einer neuen Session ist das Lesen dieser Datei der erste Schritt.
+
+### 0.4 Gate und Verwendung
+
+Erst weiter zu Schritt 2, wenn alle Pflichtfelder gesetzt sind. Danach Zusammenfassung ausgeben (Name · Description · Topics · Visibility) und die Werte konsequent wiederverwenden:
+
+| Feld | Wird verwendet in |
+|---|---|
+| `repo_name` | Verzeichnisname, README-H1, `gh repo create` |
+| `title` | README-H1 (falls abweichend vom Repo-Namen), Release-Titel |
+| `description` | `gh repo create --description`, README-One-Liner, README.de.md |
+| `topics` | `gh repo edit --add-topic` (Schritt 8) |
+| `visibility` | `gh repo create --public` / `--private` |
+| `license`, `author_name` | LICENSE (Schritt 5), README-Author-Sektion |
+| `version` | Badge, CHANGELOG, Git-Tag (Schritt 10) |
+
+---
+
 ## Schritt 1: Projekttyp und Metadaten bestimmen
+
+Regeln für die **Vorschläge** aus dem Intake (Schritt 0.2). Liegen die Werte bereits in `.github/repo-meta.yml`, ist dieser Schritt übersprungen.
 
 Erkenne den Projekttyp aus dem Kontext oder frage nach:
 
@@ -21,7 +105,7 @@ Erkenne den Projekttyp aus dem Kontext oder frage nach:
 | `python-lib` | Python-Package, Library, Module |
 | `other` | Alles andere |
 
-**Repo-Metadaten generieren** (falls nicht angegeben):
+**Repo-Metadaten vorschlagen** (nur für Felder, die Schritt 0.1 nicht geliefert hat):
 
 - **Name**: `kebab-case`, präzise, kein "my-" Präfix
   - MCP: `{service}-mcp` (z.B. `fedlex-mcp`, `swiss-transport-mcp`)
@@ -55,6 +139,7 @@ repo-name/
 ```
 ├── CONTRIBUTING.md     ← Falls externe Beiträge erwünscht
 ├── .github/
+│   ├── repo-meta.yml   ← Intake-Ergebnis aus Schritt 0 (empfohlen)
 │   └── ISSUE_TEMPLATE/ ← Falls Issue-Tracking gewünscht
 └── docs/               ← Erweiterte Dokumentation
 ```
@@ -277,6 +362,8 @@ gh auth login
 
 ### Neues Repo erstellen
 
+Alle Platzhalter unten stammen aus `.github/repo-meta.yml` (Schritt 0) — an dieser Stelle nicht erneut nachfragen.
+
 ```bash
 # Lokal: Git initialisieren (falls noch nicht)
 cd /pfad/zu/projekt
@@ -394,6 +481,11 @@ Vor dem ersten Push / vor einem Release prüfen:
 - [ ] Link zu README.md funktioniert
 - [ ] Alle Sektionen übersetzt
 - [ ] Schweizer Rechtschreibung (kein ß)
+
+**Session-Intake (Schritt 0)**
+- [ ] Alle Pflichtfelder erfasst — Titel, Description, Topics wurden genau einmal erfragt
+- [ ] `.github/repo-meta.yml` vorhanden und aktuell (`confirmed: true`)
+- [ ] Werte in README, `gh repo create` und Topics identisch zur Intake-Datei
 
 **Repo-Metadaten**
 - [ ] Description gesetzt (max. 100 Zeichen, Englisch)
