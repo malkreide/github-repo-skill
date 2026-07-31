@@ -57,8 +57,25 @@ command -v gh >/dev/null && gh auth status    # Treffer → Backend A
 | PR erstellen | `gh pr create` | `create_pull_request` | manuell |
 | CI-Status prüfen | `gh run list` | `pull_request_read` (`get_check_runs`), `actions_list` | github.com |
 | Default-Branch / Archivstatus | `gh repo view --json isArchived,defaultBranchRef` | `list_branches`, `search_repositories` | `git ls-remote --symref origin HEAD` |
-| Release | `gh release create` | kein Tool → Tag pushen, Release manuell | Tag pushen, Release manuell |
+| Tag pushen | `git push origin v1.1.0` | dito — in Web-/Remote-Sessions oft mit `403` blockiert, siehe unten | dito |
+| Release | `gh release create` | kein Tool → Release manuell auf github.com | Release manuell auf github.com |
 | Secret Scanning aktivieren | `gh api -X PATCH …` (9.6) | `run_secret_scanning` scannt, aktiviert aber nicht → Settings-UI | Settings-UI |
+
+**Tag-Pushes können gesperrt sein, obwohl Branch-Pushes funktionieren.** In
+Claude Code auf dem Web läuft `git` über einen Proxy, dessen Egress-Policy
+`refs/tags/*` ablehnen kann. Symptom:
+
+```
+error: RPC failed; HTTP 403 curl 22 The requested URL returned error: 403
+fatal: the remote end hung up unexpectedly
+```
+
+Kontrolle: `git ls-remote --tags origin` bleibt leer, während
+`git ls-remote --heads origin` den Default-Branch liefert. Das ist eine
+Richtlinienentscheidung — **nicht umgehen**, sondern melden. Ein nur lokal
+gesetzter Tag ist zudem verloren, sobald der ephemere Container endet. Vorgehen:
+Release-Notes extrahieren (Schritt 12), Notes-Datei und die drei Befehle an den
+User übergeben, Tag und Release aus einer Umgebung mit Tag-Push-Recht anlegen.
 
 Was ein Backend nicht kann, wird **als offener Punkt in `repo-meta.yml`
 vermerkt** und beim nächsten Durchlauf mit `gh` nachgezogen — nicht stillschweigend
@@ -509,6 +526,8 @@ sed -i '' "s/^## \[Unreleased\]/## [Unreleased]\n\n## [$VERSION] - $(date +%F)/"
 # 3. Tag setzen
 git tag -a "v$VERSION" -m "Release v$VERSION: {Beschreibung}"
 git push origin "v$VERSION"
+# 403 hier = Tag-Push von der Session-Policy gesperrt (siehe Backend-Abschnitt).
+# Prüfen mit: git ls-remote --tags origin
 
 # 4. Nur den Abschnitt DIESER Version extrahieren
 awk -v v="## [$VERSION]" '
@@ -612,6 +631,7 @@ falsche Änderung oder einen Fehlalarm verhindert:
 | Lint übersieht Subprojekt | eigene `pyproject.toml` erbt nichts | eigener `select` (8.2) |
 | `403` beim Push, Lesen geht | Repo archiviert | `gh repo view --json isArchived` (F2) |
 | `gh: command not found` | Web-/Remote-Session ohne CLI | Backend B oder C, siehe Mapping-Tabelle oben |
+| `403` beim Tag-Push, Branch-Push geht | Egress-Policy der Session lehnt `refs/tags/*` ab | nicht umgehen: Notes extrahieren, Tag und Release lokal anlegen (Backend-Abschnitt) |
 | Topics lassen sich nicht setzen | Backend B hat kein Topic-Tool | Settings-UI, in `repo-meta.yml` unter `offen` vermerken |
 | Nach «Titel? Description? Tags?» in jeder Session | Schritt 0 übersprungen | `.github/repo-meta.yml` anlegen (0.3) |
 
