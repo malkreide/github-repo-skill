@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- LICENSE copyright now names the legal name instead of the GitHub handle (rule C7)
+
 ## [1.1.0] - 2026-07-31
 
 ### Added
