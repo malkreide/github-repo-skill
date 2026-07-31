@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Backend section and troubleshooting entry for blocked tag pushes: a session's egress policy can reject `refs/tags/*` with `403` while branch pushes succeed, which leaves the tag local only — and the container is ephemeral
+
 ## [1.1.0] - 2026-07-31
 
 ### Added
