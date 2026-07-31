@@ -7,9 +7,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Fixed
-- LICENSE copyright now names the legal name instead of the GitHub handle (rule C7)
-
 ## [1.1.0] - 2026-07-31
 
 ### Added
@@ -30,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `assets/gitignore/claude-skill.gitignore` and `raspberry-pi.gitignore` were missing secret patterns that step 9.1 claims all variants cover (`.env.*`, `*.key`, `*.pem`, `credentials.json`, `secrets.yaml`, `config.local.*`)
 - Unused import in `scripts/validate_repo.py` that would have failed the repository's own lint step
 - README files documented a `.gitignore` that did not exist in the repository
+- LICENSE copyright names the legal copyright holder instead of the GitHub handle (rule C7)
 
 ## [1.0.0] - 2025-03-09
 
