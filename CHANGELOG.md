@@ -9,27 +9,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **CI prüft die Versionsanker gegen den CHANGELOG.** Beim v1.2.0-Release mussten
-  drei Anker von Hand gezogen werden — beide README-Badges und das
-  `version`-Feld in `.github/repo-meta.yml`, das sich selbst die einzige Quelle
-  der Wahrheit für die Metadaten dieses Repos nennt. Nichts hielt sie zusammen,
-  also war das genau die Drift, die dieser Skill anderswo anmahnt.
+- **Neuer Check `C8` — Versionsanker gegen die oberste CHANGELOG-Release-Überschrift.**
+  Die Version steht je nach Repo an bis zu vier Orten: im Badge jeder
+  README-Sprachfassung, in einer `**Version:**`-Zeile, im `version`-Feld von
+  `.github/repo-meta.yml` — und im CHANGELOG. Zusammengehalten hat sie nichts,
+  und entsprechend sind sie auseinander: Im Audit-Repo des Portfolios stand die
+  Statuszeile drei Releases lang auf `v1.0.0`, in diesem Repo mussten beim
+  v1.2.0-Release drei Anker von Hand nachgezogen werden.
 
-  Quelle ist die oberste `## [X.Y.Z]`-Überschrift; `[Unreleased]` trägt keine
-  Versionsnummer und wird vom Muster übersprungen. Die READMEs kommen per
-  `glob("README*.md")`, damit eine dritte Sprachfassung keinen weiteren Eingriff
-  braucht. Jeder Anker wird einzeln auf Existenz geprüft: ein entfernter Badge
-  und ein CHANGELOG ohne Release-Überschrift scheitern je für sich, weil eine
-  Prüfung, die nichts findet, grün ist.
+  **WARN, nicht ERROR.** Eine veraltete Versionsangabe ist ein Doku-Mangel und
+  kein Baufehler, und der Check läuft über ein gewachsenes Portfolio, in dem ein
+  ERROR reihenweise blockieren würde, ohne dass etwas kaputt ist.
 
-  Anders als die Fassung in den Skill-Repos sammelt diese **alle** Abweichungen
-  und meldet sie gemeinsam, statt beim ersten Fund abzubrechen — wer zwei von
-  vier Ankern vergisst, soll beide sehen und nicht zweimal laufen müssen.
+  Still, wo es nichts zu vergleichen gibt: ohne `CHANGELOG.md`, ohne
+  Release-Überschrift (Repo vor dem ersten Release) oder ohne jeden Anker. Der
+  letzte Fall wird als INFO gemeldet — «nichts gefunden» soll nicht wie «alles
+  in Ordnung» aussehen. Die READMEs kommen per `glob("README*.md")`, damit eine
+  dritte Sprachfassung keinen weiteren Eingriff braucht.
 
-  Gegen vier Mutationen geprüft: ein vergessenes `repo-meta.yml`, zwei
-  gleichzeitig vergessene Anker, ein entfernter Badge, und eine verlorene
-  Release-Überschrift — letzteres derselbe Fehler, der in diesem Repo heute
-  unbemerkt zwei Commits überdauert hat.
+  Jeder Ankertyp einzeln gegengeprobt: Badge, `**Version:**`-Zeile,
+  `repo-meta.yml`, beide Sprachfassungen gleichzeitig, gar kein Anker, und ein
+  Repo vor dem ersten Release.
+
+- **Dieses Repo stuft `C8` zum Fehlschlag hoch.** Es ist die Quelle der Regel,
+  und beim letzten Release hat genau diese Drift zugeschlagen. Die CI liest die
+  `--json`-Ausgabe des eigenen Validators und scheitert, sobald dort ein
+  C8-Finding oberhalb von INFO steht — eine Implementation, zwei Schweregrade,
+  statt derselben Logik an zwei Stellen.
 
 ## [1.2.0] - 2026-08-01
 

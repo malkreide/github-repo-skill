@@ -376,6 +376,66 @@ def list_tool_names(repo: Path, rep: Report) -> None:
                     rep.warn("E1", f"{name}: Tools fehlen in dieser Sprachfassung: {gaps}")
 
 
+# C8 — Versionsanker. Die Quelle ist die oberste Release-Überschrift;
+# `[Unreleased]` trägt keine Versionsnummer und wird vom Muster übersprungen.
+RELEASE_HEADING_RE = re.compile(r"^## \[v?(?P<version>\d+\.\d+\.\d+)\]", re.MULTILINE)
+# Zwei Schreibweisen im README, beide im Portfolio in Gebrauch: der Shields-Badge
+# und die `**Version:**`-Zeile in einem Status-Abschnitt.
+VERSION_ANCHORS = (
+    (re.compile(r"badge/version-(\d+\.\d+\.\d+)-"), "Badge"),
+    (re.compile(r"^\*\*Version:\*\*\s+v?(\d+\.\d+\.\d+)", re.MULTILINE), "Version-Zeile"),
+)
+META_VERSION_RE = re.compile(r"^version:\s*v?(\d+\.\d+\.\d+)\s*$", re.MULTILINE)
+
+
+def check_version_anchors(repo: Path, rep: Report) -> None:
+    """C8 — Versionsangaben gegen die oberste Release-Überschrift im CHANGELOG.
+
+    Die Version steht je nach Repo an bis zu vier Orten: im Badge jeder
+    README-Sprachfassung, in einer `**Version:**`-Zeile, im `version`-Feld von
+    `.github/repo-meta.yml` — und im CHANGELOG. Der CHANGELOG ist die Quelle,
+    die übrigen folgen ihm.
+
+    Zusammengehalten hat sie nichts, und entsprechend sind sie auseinander:
+    Im Audit-Repo des Portfolios stand die Statuszeile drei Releases lang auf
+    `v1.0.0`, in diesem Repo mussten beim v1.2.0-Release drei Anker von Hand
+    nachgezogen werden.
+
+    **WARN und nicht ERROR.** Eine veraltete Versionsangabe ist ein Doku-Mangel,
+    kein Baufehler — und dieser Check läuft über ein gewachsenes Portfolio, in
+    dem ein ERROR reihenweise blockieren würde, ohne dass etwas kaputt ist.
+
+    Bewusst still, wo es nichts zu vergleichen gibt: ohne `CHANGELOG.md`, ohne
+    Release-Überschrift (Repo vor dem ersten Release) oder ohne jeden Anker.
+    Der letzte Fall wird als INFO gemeldet — «nichts gefunden» soll nicht wie
+    «alles in Ordnung» aussehen.
+    """
+    changelog = repo / "CHANGELOG.md"
+    if not changelog.is_file():
+        return
+    m = RELEASE_HEADING_RE.search(changelog.read_text(encoding="utf-8", errors="replace"))
+    if m is None:
+        return
+    expected = m.group("version")
+
+    found: list[tuple[str, str]] = []
+    for readme in sorted(repo.glob("README*.md")):
+        text = readme.read_text(encoding="utf-8", errors="replace")
+        for pattern, label in VERSION_ANCHORS:
+            found.extend((f"{readme.name} ({label})", v) for v in pattern.findall(text))
+    meta = repo / ".github" / "repo-meta.yml"
+    if meta.is_file():
+        text = meta.read_text(encoding="utf-8", errors="replace")
+        found.extend((".github/repo-meta.yml", v) for v in META_VERSION_RE.findall(text))
+
+    if not found:
+        rep.info("C8", f"Kein Versionsanker gefunden — CHANGELOG nennt {expected}")
+        return
+    stale = sorted({f"{where} → {v}" for where, v in found if v != expected})
+    if stale:
+        rep.warn("C8", f"Versionsangaben weichen vom CHANGELOG ({expected}) ab: {stale}")
+
+
 def check_license_name(repo: Path, rep: Report) -> None:
     """C7 — LICENSE nennt den bürgerlichen Namen, nicht den GitHub-Handle."""
     lic = repo / "LICENSE"
@@ -427,6 +487,7 @@ def main() -> int:
     check_blind_assertions(repo, rep)
     list_tool_names(repo, rep)
     check_license_name(repo, rep)
+    check_version_anchors(repo, rep)
     check_branch(repo, rep)
 
     if as_json:
