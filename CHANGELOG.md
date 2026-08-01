@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **CI prüft die Versionsanker gegen den CHANGELOG.** Beim v1.2.0-Release mussten
+  drei Anker von Hand gezogen werden — beide README-Badges und das
+  `version`-Feld in `.github/repo-meta.yml`, das sich selbst die einzige Quelle
+  der Wahrheit für die Metadaten dieses Repos nennt. Nichts hielt sie zusammen,
+  also war das genau die Drift, die dieser Skill anderswo anmahnt.
+
+  Quelle ist die oberste `## [X.Y.Z]`-Überschrift; `[Unreleased]` trägt keine
+  Versionsnummer und wird vom Muster übersprungen. Die READMEs kommen per
+  `glob("README*.md")`, damit eine dritte Sprachfassung keinen weiteren Eingriff
+  braucht. Jeder Anker wird einzeln auf Existenz geprüft: ein entfernter Badge
+  und ein CHANGELOG ohne Release-Überschrift scheitern je für sich, weil eine
+  Prüfung, die nichts findet, grün ist.
+
+  Anders als die Fassung in den Skill-Repos sammelt diese **alle** Abweichungen
+  und meldet sie gemeinsam, statt beim ersten Fund abzubrechen — wer zwei von
+  vier Ankern vergisst, soll beide sehen und nicht zweimal laufen müssen.
+
+  Gegen vier Mutationen geprüft: ein vergessenes `repo-meta.yml`, zwei
+  gleichzeitig vergessene Anker, ein entfernter Badge, und eine verlorene
+  Release-Überschrift — letzteres derselbe Fehler, der in diesem Repo heute
+  unbemerkt zwei Commits überdauert hat.
+
 ## [1.2.0] - 2026-08-01
 
 Zwei Fehlalarme in E1, beide derselben Klasse: Der Check las Dokumentation als

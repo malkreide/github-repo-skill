@@ -30,3 +30,66 @@ jobs:
       # Der Skill prüft sein eigenes Repo mit dem eigenen Validator.
       - name: Validate repository structure
         run: python scripts/validate_repo.py .
+
+      # Die Versionsangaben stehen hier an vier Orten: zwei README-Badges, das
+      # repo-meta.yml und der CHANGELOG. Der CHANGELOG ist die Quelle, die
+      # anderen drei folgen. Vor v1.2.0 hielt sie nichts zusammen — beim Release
+      # mussten alle drei von Hand gezogen werden, und genau so entsteht die
+      # Drift, die dieser Skill anderswo anmahnt.
+      - name: Version anchors match the latest CHANGELOG release
+        env:
+          PYTHONUTF8: "1"
+        run: |
+          python - <<'PY'
+          import pathlib, re, sys
+
+          lines = pathlib.Path("CHANGELOG.md").read_text(encoding="utf-8").splitlines()
+          HEADING = re.compile(r"^## \[v?(?P<version>\d+\.\d+\.\d+)\]")
+          source = next(((n, ln, m.group("version"))
+                         for n, ln in enumerate(lines, 1)
+                         if (m := HEADING.match(ln))), None)
+          if source is None:
+              sys.exit("CHANGELOG.md: keine '## [X.Y.Z]'-Release-Überschrift gefunden — "
+                       "Anker weg, damit hätte diese Prüfung nichts zum Vergleichen")
+          lineno, heading, expected = source
+
+          problems: list[str] = []
+
+          def check(path, pattern, label):
+              p = pathlib.Path(path)
+              if not p.is_file():
+                  problems.append(f"{path}: fehlt")
+                  return
+              found = pattern.findall(p.read_text(encoding="utf-8"))
+              if not found:
+                  problems.append(f"{path}: kein {label} gefunden — Anker entfernt "
+                                  "oder umformuliert, die Prüfung liefe hier ins Leere")
+                  return
+              stale = sorted({v for v in found if v != expected})
+              if stale:
+                  problems.append(f"{path}: {label} zeigt {stale}, erwartet {expected}")
+              else:
+                  print(f"ok — {path}: {expected}")
+
+          # Alle Sprachfassungen, per glob statt als feste Liste.
+          readmes = sorted(pathlib.Path(".").glob("README*.md"))
+          if not readmes:
+              problems.append("keine README*.md gefunden")
+          for r in readmes:
+              check(r, re.compile(r"badge/version-(\d+\.\d+\.\d+)-"), "Version-Badge")
+
+          # Vierter Ort, den die Skill-Repos nicht haben: repo-meta.yml nennt sich
+          # selbst die einzige Quelle der Wahrheit für die Metadaten dieses Repos.
+          check(".github/repo-meta.yml",
+                re.compile(r"^version:\s*(\d+\.\d+\.\d+)\s*$", re.M), "version-Feld")
+
+          # Alle Abweichungen auf einmal, nicht nur die erste: Wer beim Release
+          # zwei von vier Ankern vergisst, soll beide sehen und nicht zweimal
+          # laufen müssen.
+          if problems:
+              sys.exit("\n".join(problems) + f"\n  Quelle: CHANGELOG.md:{lineno} "
+                       f"{heading.strip()!r}. Entweder wurde ein Anker beim Release "
+                       "nicht gezogen, oder eine Release-Überschrift ist verlorengegangen "
+                       "— prüfen, welche Seite sich bewegt hat.")
+          print(f"ok — alle Versionsanker auf {expected} (CHANGELOG.md:{lineno})")
+          PY
