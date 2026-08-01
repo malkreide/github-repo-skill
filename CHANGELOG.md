@@ -7,7 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [1.1.0] - 2026-07-31
+### Fixed
+- **E1 reads the AST instead of the raw text, so a docstring example is no longer mistaken for a registered tool.** `list_tool_names` matched `@<x>.tool(...)` directly above a `def` with a regex over the file's raw text, which cannot tell code from documentation. A reference file whose module docstring showed the usage pattern was therefore reported as registering a tool: `mcp-data-source-probe-skill` — a skill repository with no tools at all — was flagged for an undocumented `my_tool` for as long as that example existed. Verified against that exact file: two hits before, none after.
+- **E1 no longer loses tools whose decorator arguments contain a parenthesis.** The same regex bounded the argument list with `[^)]*` and stopped at the first `)`, so `@mcp.tool(name=" ".join(...))` or a `description` containing a parenthetical went unseen. Both cases are covered by a fixture; the old implementation found four tools where five exist and invented a fifth, the new one finds exactly the five.
+- Files that fail to parse — templates with placeholders, fixtures, Python 2 remnants — are skipped for E1 and **named in an INFO line**. A path that nothing checks and nobody sees is the same error one level up.
 
 ### Added
 - Step 0 "Session intake": title, description, and topics are collected once, bundled in a single question, before any file is written; persisted to `.github/repo-meta.yml` as the single source of truth, including `author_label` (never normalized, rule D1), `default_branch`, `pypi_package`, and `mcp_name`

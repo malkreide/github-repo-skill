@@ -15,6 +15,7 @@ Exit-Code: 0 = keine ERROR-Findings, 1 = mindestens ein ERROR.
 
 from __future__ import annotations
 
+import ast
 import json
 import re
 import subprocess
@@ -292,18 +293,65 @@ def check_blind_assertions(repo: Path, rep: Report) -> None:
                                 "pytest.raises(Exception) — konkrete Exception verwenden")
 
 
+def registered_tool_names(tree: ast.Module) -> list[str]:
+    """Namen aller mit `@<x>.tool(...)` dekorierten Funktionen.
+
+    Registriert ist das `name=`-Argument, wenn es gesetzt ist — sonst der
+    Funktionsname. Genau diese Unterscheidung ist E1 (siehe review-rules.md).
+    """
+    names: list[str] = []
+    for node in ast.walk(tree):
+        if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            continue
+        for dec in node.decorator_list:
+            call = dec if isinstance(dec, ast.Call) else None
+            target = call.func if call is not None else dec
+            if not (isinstance(target, ast.Attribute) and target.attr == "tool"):
+                continue
+            name = node.name
+            if call is not None:
+                for kw in call.keywords:
+                    if (kw.arg == "name" and isinstance(kw.value, ast.Constant)
+                            and isinstance(kw.value.value, str)):
+                        name = kw.value.value
+            names.append(name)
+            break
+    return names
+
+
 def list_tool_names(repo: Path, rep: Report) -> None:
-    """E1 — registrierte Namen ausgeben, nicht die Funktionsnamen."""
+    """E1 — registrierte Namen ausgeben, nicht die Funktionsnamen.
+
+    Über den AST statt über einen Regex auf dem Rohtext. Ein `@mcp.tool()`
+    über einem `def` in einem Docstring-Beispiel ist Dokumentation, kein
+    registriertes Tool — der frühere Regex konnte beides nicht unterscheiden
+    und meldete in einem Skill-Repo ohne ein einziges Tool ein `my_tool` als
+    «nicht im README dokumentiert».
+
+    Nebeneffekt, gegengeprüft: Der Regex begrenzte die Dekorator-Argumente
+    mit [^)]* und lief deshalb an jedem Dekorator vorbei, dessen Argumente
+    selbst eine Klammer enthalten — etwa name=" ".join(...) oder eine
+    Beschreibung mit einem Klammerausdruck darin. Zwei solche Tools blieben
+    in einem Fixture unerkannt, während my_tool erfunden wurde.
+    """
     registered: list[str] = []
+    unparsed: list[str] = []
     for py in sorted(repo.rglob("*.py")):
         if any(p in {".venv", "venv", "build", "dist"} for p in py.parts):
             continue
         raw = py.read_text(encoding="utf-8", errors="replace")
-        for m in re.finditer(r"@\w+\.tool\(([^)]*)\)\s*\n\s*(?:async\s+)?def\s+(\w+)",
-                             raw, re.MULTILINE):
-            args, func = m.group(1), m.group(2)
-            explicit = re.search(r'name\s*=\s*["\']([^"\']+)["\']', args)
-            registered.append(explicit.group(1) if explicit else func)
+        try:
+            tree = ast.parse(raw)
+        except SyntaxError:
+            # Templates mit Platzhaltern, Fixtures, Py2-Reste: nicht parsebar
+            # und praktisch nie ein echter Server. Gemeldet statt stillschweigend
+            # übergangen — ein Pfad, den niemand prüft und niemand sieht, ist
+            # derselbe Fehler eine Ebene höher.
+            unparsed.append(str(py.relative_to(repo)))
+            continue
+        registered.extend(registered_tool_names(tree))
+    if unparsed:
+        rep.info("E1", f"Nicht parsebar, bei der Tool-Suche übersprungen: {sorted(unparsed)}")
     if registered:
         rep.info("E1", f"Registrierte Tool-Namen ({len(registered)}): {sorted(registered)}")
         readme = repo / "README.md"
