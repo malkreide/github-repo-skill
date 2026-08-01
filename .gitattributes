@@ -1,0 +1,21 @@
+# Force LF line endings on every checkout so Windows hosts with
+# autocrlf=true don't break shell scripts (CRLF chokes bash) or
+# regex-based markdown parsing (frontmatter fences expect \n-only).
+#
+# This repository has a second reason the others do not: assets/ holds the
+# templates that get copied into every new repository created with this skill —
+# gitignores, workflows, READMEs, the MIT licence. A template that picks up CRLF
+# here seeds CRLF into each repository it starts, and the skill's own CI checks
+# would then be reading files it did not write.
+*.sh        text eol=lf
+*.py        text eol=lf
+*.yml       text eol=lf
+*.yaml      text eol=lf
+*.md        text eol=lf
+*.txt       text eol=lf
+*.toml      text eol=lf
+*.gitignore text eol=lf
+LICENSE     text eol=lf
+# Auch sich selbst: sonst bleibt genau die Datei ohne Regel, die die Regeln
+# aufstellt. Folgenlos für git, aber es fällt beim nächsten Durchgang auf.
+.gitattributes text eol=lf

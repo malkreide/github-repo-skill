@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **`.gitattributes` pinning text files to LF.** This repository was the last in the portfolio without one. It matters more here than elsewhere: `assets/` holds the templates copied into every repository created with this skill — gitignores, workflows, READMEs, the MIT licence — so a template that picks up CRLF seeds it into each repository it starts. The index was already LF-clean, so nothing was rewritten; this keeps a Windows checkout from introducing CRLF on a later commit. Covers `.toml` and `*.gitignore` beyond the portfolio's usual set, because both exist here, and the file itself, so the one file that states the rules is not the one without them.
+
 ### Fixed
 - **E1 reads the AST instead of the raw text, so a docstring example is no longer mistaken for a registered tool.** `list_tool_names` matched `@<x>.tool(...)` directly above a `def` with a regex over the file's raw text, which cannot tell code from documentation. A reference file whose module docstring showed the usage pattern was therefore reported as registering a tool: `mcp-data-source-probe-skill` — a skill repository with no tools at all — was flagged for an undocumented `my_tool` for as long as that example existed. Verified against that exact file: two hits before, none after.
 - **E1 no longer loses tools whose decorator arguments contain a parenthesis.** The same regex bounded the argument list with `[^)]*` and stopped at the first `)`, so `@mcp.tool(name=" ".join(...))` or a `description` containing a parenthetical went unseen. Both cases are covered by a fixture; the old implementation found four tools where five exist and invented a fifth, the new one finds exactly the five.
