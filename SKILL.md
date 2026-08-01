@@ -15,6 +15,7 @@ Standard-Dateien, Secrets-Check, reproduzierbarer CI und Release-Gate.
 | `scripts/validate_repo.py` | Immer vor Push und Release. Meldet Struktur-, README- und CI-Konfigurationsfehler. Ändert nichts. |
 | `scripts/check_release_artifacts.py` | Im Release-Workflow, nach `python -m build`, vor dem Upload. |
 | `scripts/test_c1.py` | Nach jeder Änderung an der C1-Logik in `validate_repo.py`: `python3 scripts/test_c1.py` |
+| `scripts/test_emoji.py` | Nach jeder Änderung an `EMOJI_RE`: `python3 scripts/test_emoji.py` |
 | `references/mcp-publishing.md` | Sobald ein `*-mcp`-Repo publiziert oder released wird. |
 | `references/review-rules.md` | **Vor** jeder Änderung an einem bestehenden Repo. |
 | `assets/templates/` | README-Vorlagen EN/DE |
@@ -573,6 +574,7 @@ falsche Änderung oder einen Fehlalarm verhindert:
 | E4 | Vor Emoji-Entfernung Anker-Links prüfen; Unicode-Bereiche eng fassen, sonst fallen Umlaute weg |
 | E5 | Default-Branch ist nicht immer `main` |
 | E6 | C1-Reihenfolgefehler zeigt oft auf eine Inhaltssektion, nicht auf den Schlussblock — vor dem Umsortieren prüfen, wo die gemeldete Sektion steht |
+| E7 | Emoji ≠ «Zeichen über U+2000». `↔` ist Typografie, `↔️` ein Emoji — Textdarstellungs-Zeichen zählen erst mit VS16 |
 | F2 | 403 beim Push: zuerst Archiv-Status prüfen, nicht Berechtigungen |
 
 ---
