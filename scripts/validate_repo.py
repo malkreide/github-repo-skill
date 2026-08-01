@@ -354,12 +354,26 @@ def list_tool_names(repo: Path, rep: Report) -> None:
         rep.info("E1", f"Nicht parsebar, bei der Tool-Suche übersprungen: {sorted(unparsed)}")
     if registered:
         rep.info("E1", f"Registrierte Tool-Namen ({len(registered)}): {sorted(registered)}")
-        readme = repo / "README.md"
-        if readme.exists():
-            text = readme.read_text(encoding="utf-8", errors="replace")
-            missing = [t for t in registered if t not in text]
+        # Alle Sprachfassungen, nicht nur README.md. Seit die Repos zweisprachig
+        # sind, wäre ein nur im deutschen README dokumentiertes Tool sonst als
+        # undokumentiert gemeldet worden — ein Fehlalarm derselben Klasse wie das
+        # Docstring-Beispiel eine Funktion weiter oben.
+        texts = {
+            f.name: f.read_text(encoding="utf-8", errors="replace")
+            for f in sorted(repo.glob("README*.md"))
+        }
+        if texts:
+            unique = set(registered)
+            missing = sorted(t for t in unique if not any(t in x for x in texts.values()))
             if missing:
                 rep.warn("E1", f"Tools nicht im README dokumentiert: {missing}")
+            # Getrennt gemeldet: «nirgends dokumentiert» und «nur in einer
+            # Sprachfassung» sind verschiedene Fehler, und der zweite ist erst
+            # sichtbar, wenn man beide Fassungen liest.
+            for name, text in texts.items():
+                gaps = sorted(t for t in unique - set(missing) if t not in text)
+                if gaps:
+                    rep.warn("E1", f"{name}: Tools fehlen in dieser Sprachfassung: {gaps}")
 
 
 def check_license_name(repo: Path, rep: Report) -> None:
