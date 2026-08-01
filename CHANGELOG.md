@@ -9,6 +9,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`C5` meldete Typografie als Emoji.** `EMOJI_RE` nahm ganze Unicode-Blöcke
+  pauschal, darunter `U+2190–U+21FF` — den kompletten Pfeilblock. Die
+  Überschrift `The UID join — Zefix ↔ Amtsblatt` (register-mcp) galt deshalb als
+  emojihaltig. Das ist genau die zu breite Regel, vor der E4 warnt, nur trifft
+  sie Pfeile statt Umlaute.
+
+  Ein zweiter Bereich war noch gröber: `U+24C2–U+1F251` verschluckte nebenbei
+  **den gesamten CJK-Block** — `漢` galt als Emoji. Ebenso `✓`, `✗`, `⌘` und `Ⓜ`.
+
+  Die Erkennung folgt jetzt Unicodes Emoji_Presentation: Zeichen mit
+  Emoji-Standarddarstellung (`⚡`, `✨`) zählen allein, Zeichen mit
+  Textdarstellung (`⚖`, `❄`, `✈`, `↔`) erst mit dem Variantenselektor VS16.
+  An allen Überschriften des Portfolios gegengeprüft — die dort vorkommenden
+  Textdarstellungs-Emoji tragen ausnahmslos VS16, die Default-Emoji stehen
+  ausnahmslos nackt.
+
+  Gemessen über 50 Repos: **2 Fehlalarme weg, alle 200 echten C5-Befunde
+  erhalten**, sonst keine geänderte Zeile. Neue Regel `E7`.
+
+  Nebenwirkung mitbedacht: `normalise()` benutzt dieselbe Regex zum Strippen.
+  Der Variantenselektor wird jetzt mitgenommen, sonst bliebe er als
+  unsichtbarer Rest im Titel stehen und der exakte Vergleich (E3) scheiterte an
+  einem Zeichen, das man nicht sieht.
+
 - **`C1` meldete eine falsche Reihenfolge, obwohl der Schlussblock korrekt
   sortiert war.** Die Prüfung klassifizierte jede Überschrift, deren Titel in
   der Allowlist steht — unabhängig von Ebene und Position — und liess bei
@@ -33,6 +57,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   geänderte Zeile. Neue Regel `E6` in `references/review-rules.md`.
 
 ### Added
+
+- **`scripts/test_emoji.py` — 47 Fixtures für die Emoji-Erkennung.** Hält alle
+  drei Seiten fest: Typografie darf nicht gemeldet werden, echte Emoji müssen
+  gefunden werden (auch die ohne Selektor), und `normalise()` darf keine
+  unsichtbaren Reste hinterlassen. Enthält Regressionsfälle für beide
+  entfernten Bereiche — `↔` für den Pfeilblock, `漢`/`あ`/`한` für den
+  CJK-Bereich. Gegen die alte Regex laufen sieben davon rot.
 
 - **`scripts/test_c1.py` — 14 Fixtures für die C1-Logik.** Hält beide Hälften
   einzeln fest: die Filter müssen die Fehlmeldungen beseitigen, dürfen echte

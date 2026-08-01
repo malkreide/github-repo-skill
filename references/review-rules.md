@@ -125,6 +125,36 @@ grep -n "^#\{1,4\} " README.md | grep -iE "contribut|security|licen|author"
 Steht der Schlussblock bereits richtig, ist Umsortieren der falsche Fix — er
 zerstört die korrekte Reihenfolge. Zu klären ist dann die Doppelbelegung.
 
+### E7 — Emoji ist nicht «Zeichen über U+2000»
+
+E4 warnt davor, dass eine zu breite Emoji-Regel Umlaute frisst. Dieselbe Regel
+war auch in die andere Richtung zu breit: sie nahm ganze Unicode-Blöcke pauschal
+und meldete `The UID join — Zefix ↔ Amtsblatt` (register-mcp) als Emoji.
+
+Unicode unterscheidet zwei Klassen, und genau daran verläuft die Grenze:
+
+| Klasse | Beispiele | zählt als Emoji |
+|---|---|---|
+| Emoji-Standarddarstellung | `⚡` `✨` `⭐` `✅` | für sich allein |
+| Text-Standarddarstellung | `⚖` `❄` `✈` `↔` `✓` | erst mit VS16 (U+FE0F) |
+
+`↔` ist Typografie, `↔️` ist ein Emoji — derselbe Codepoint, ein unsichtbares
+Zeichen Unterschied. Im Portfolio gegengeprüft: die vorkommenden
+Textdarstellungs-Emoji (`⚖ ⚙ ⛰ ✈ ❄`) tragen **ausnahmslos** VS16, die
+Default-Emoji (`⚡ ✨`) stehen **ausnahmslos** nackt.
+
+Zwei Bereiche der alten Regel waren besonders grob:
+
+- `U+2190–U+21FF` — der komplette Pfeilblock, also `←` `→` `↔` inklusive.
+- `U+24C2–U+1F251` — ein einzelner Bereich, der nebenbei **den gesamten
+  CJK-Block** verschluckte: `漢` galt als Emoji.
+
+Beim Ändern der Erkennung zusätzlich beachten: `normalise()` benutzt dieselbe
+Regex zum Strippen. Wird der Variantenselektor nicht mitgenommen, bleibt er als
+unsichtbarer Rest im Titel stehen und der exakte Vergleich (E3) scheitert an
+einem Zeichen, das man nicht sieht. `scripts/test_emoji.py` hält alle drei
+Seiten fest — Fehlalarm, Übersehen und Strip-Hygiene.
+
 ---
 
 ## F2 — 403 beim Push in ein archiviertes Repo

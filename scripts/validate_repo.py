@@ -58,10 +58,54 @@ EN_ONLY_IN_DE = {"contributing", "security", "license", "licence", "author",
                  "overview", "features", "prerequisites", "usage",
                  "configuration", "project structure", "available tools"}
 
+# C5/E7 — Emoji-Erkennung. Unicode kennt zwei Klassen, und der Unterschied ist
+# genau der zwischen einem Emoji und einem Satzzeichen:
+#
+#   Emoji-Standarddarstellung   ⚡ ✨ 🗺   zaehlen fuer sich allein
+#   Text-Standarddarstellung    ⚖ ❄ ✈ ↔  sind Typografie, bis ein
+#                                          Variantenselektor VS16 (U+FE0F) folgt
+#
+# Die fruehere Fassung nahm ganze Bloecke pauschal — darunter U+2190–U+21FF,
+# den kompletten Pfeilblock — und meldete deshalb `Zefix ↔ Amtsblatt` als
+# Emoji. Das ist die zu breite Regel, vor der E4 warnt, nur trifft sie Pfeile
+# statt Umlaute. Ebenfalls entfallen: U+24C2–U+1F251, ein einzelner Bereich,
+# der nebenbei den gesamten CJK-Block verschluckte.
+#
+# Gegengeprueft an allen Ueberschriften des Portfolios: die dort vorkommenden
+# Textdarstellungs-Emoji (⚖ ⚙ ⛰ ✈ ❄) tragen ausnahmslos VS16, die
+# Default-Emoji (⚡ ✨) stehen ausnahmslos nackt. `scripts/test_emoji.py` haelt
+# beide Seiten fest.
+_EMOJI_PICTOGRAPH = "\U0001F000-\U0001FAFF"
+
+# BMP-Zeichen mit Emoji_Presentation=Yes — vollstaendige Liste ausserhalb der
+# Pictograph-Ebenen. Nicht als Bereich zusammenfassbar: sie liegen verstreut
+# zwischen Zeichen, die Textdarstellung haben.
+_EMOJI_DEFAULT = (
+    "⌚⌛⏩-⏬⏰⏳◽◾☔☕"
+    "♈-♓♿⚓⚡⚪⚫⚽⚾⛄⛅"
+    "⛎⛔⛪⛲⛳⛵⛺⛽✅✊✋"
+    "✨❌❎❓-❕❗➕-➗➰➿"
+    "⬛⬜⭐⭕"
+)
+
+# Unsichtbare Steuerzeichen bewusst als Escape, nicht als Literal: im Quelltext
+# waeren sie nicht zu sehen und beim naechsten Editieren still verloren.
+_VS16 = "\uFE0F"      # Emoji-Darstellung erzwingen
+_VS15 = "\uFE0E"      # Textdarstellung erzwingen
+_ZWJ = "\u200D"       # verbindet Emoji-Sequenzen
+_KEYCAP = "\u20E3"    # Keycap-Combiner (Ziffer + VS16 + U+20E3)
+
 EMOJI_RE = re.compile(
-    "[" "\U0001F300-\U0001FAFF" "\U00002190-\U000021FF" "\U00002300-\U000023FF"
-    "\U000024C2-\U0001F251" "\U00002600-\U000027BF" "\U0000FE0F" "\U0001F1E6-\U0001F1FF"
-    "]"
+    # Emoji; der Variantenselektor wird mitgenommen, sonst bliebe er in
+    # normalise() als unsichtbarer Rest stehen und der Titelvergleich (E3)
+    # scheiterte an einem Zeichen, das man nicht sieht.
+    f"[{_EMOJI_PICTOGRAPH}{_EMOJI_DEFAULT}][{_VS16}{_VS15}]?"
+    # Zeichen mit Textdarstellung — nur mit VS16 ein Emoji. Der Bereich
+    # U+203C..U+3299 deckt Pfeile, technische Symbole und Dingbats ab;
+    # ohne den Selektor greift hier nichts.
+    f"|[\u203C-\u3299]{_VS16}"
+    # Verwaiste Selektoren, ZWJ und Keycap-Combiner.
+    f"|[{_VS16}{_ZWJ}{_KEYCAP}]"
 )
 MARKER_RE = re.compile(r"<!--\s*mcp-name:\s*([^\s>]+)\s*-->")
 MD_IMG_RE = re.compile(r"!\[[^\]]*\]\(([^)\s]+)")
