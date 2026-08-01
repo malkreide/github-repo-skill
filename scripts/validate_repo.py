@@ -143,18 +143,42 @@ def check_readme(path: Path, lang: str, repo: Path, rep: Report) -> None:
     hs = headings(text)
 
     # C1 — Reihenfolge der Schluss-Sektionen
-    order = [classify(t, lang) for _, t in hs]
-    order = [o for o in order if o]
     expected = CLOSING_EN if lang == "en" else CLOSING_DE
-    present = [o for o in order if o in expected]
+    tagged = [(lvl, classify(t, lang)) for lvl, t in hs]
+    hits = [(lvl, c) for lvl, c in tagged if c in expected]
+
+    # Für die *Existenz* zählt jede Ebene: eine vorhandene Sektion als fehlend
+    # zu melden wäre schlimmer als eine tief verschachtelte durchzulassen.
+    present = [c for _, c in hits]
     for want in expected:
         if want not in present:
             level = "WARN" if want == "contributing" else "ERROR"
             rep.add(level, "C1", f"{path.name}: Sektion '{want}' fehlt")
-    dedup = list(dict.fromkeys(present))
-    ranked = [expected.index(o) for o in dedup]
-    if ranked != sorted(ranked):
-        rep.error("C1", f"{path.name}: Schluss-Sektionen in falscher Reihenfolge: {dedup}")
+
+    # Für die *Reihenfolge* zählt nur der Schlussblock selbst. Zwei Filter,
+    # beide aus konkreten Fehlmeldungen im Portfolio (E6):
+    #
+    # 1. Ebene — `### Security` als Unterpunkt von `## Safety & Limits` ist
+    #    keine Dokumentsektion. Massgeblich ist die flachste Ebene, auf der
+    #    überhaupt Schluss-Sektionen stehen; nicht hart `##`, damit ein README
+    #    mit durchgehend tieferer Gliederung nicht als blockfrei gilt.
+    # 2. Mehrfachnennung — ein Allowlist-Titel darf auch Inhaltssektion sein
+    #    (`## Data License`, `## Security & Compliance`). Dann ist die LETZTE
+    #    Nennung der Schlussblock. Vorher gewann die erste, und die Meldung
+    #    zeigte auf eine Sektion mehrere hundert Zeilen weiter oben — der
+    #    Schlussblock selbst war in allen beobachteten Fällen korrekt.
+    #
+    # Ein einfach genannter, falsch platzierter Schlussblock wird weiterhin
+    # gemeldet: kollabiert werden ausschliesslich Duplikate.
+    # `scripts/test_c1.py` haelt beide Haelften einzeln fest.
+    if hits:
+        doc_lvl = min(lvl for lvl, _ in hits)
+        block = [c for lvl, c in hits if lvl == doc_lvl]
+        last = {c: i for i, c in enumerate(block)}
+        dedup = [c for i, c in enumerate(block) if last[c] == i]
+        ranked = [expected.index(c) for c in dedup]
+        if ranked != sorted(ranked):
+            rep.error("C1", f"{path.name}: Schluss-Sektionen in falscher Reihenfolge: {dedup}")
 
     # C3 — Author als Überschrift, nicht als Fettdruck
     if BOLD_AUTHOR_RE.search(strip_code_fences(text)):

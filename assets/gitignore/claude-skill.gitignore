@@ -8,3 +8,10 @@
 credentials.json
 secrets.yaml
 config.local.*
+
+# Skill-Repos liefern haeufig Python-Skripte in `scripts/` mit. Ohne diese
+# Zeilen landet beim ersten Ausfuehren eine .pyc im `git add` — genau das hat
+# Schritt 9.1 in diesem Repo abgefangen.
+__pycache__/
+*.py[cod]
+.pytest_cache/

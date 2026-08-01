@@ -81,6 +81,50 @@ Drei Repos nutzen `master`. Vor jedem Push und in jedem Workflow prüfen:
 git symbolic-ref --quiet refs/remotes/origin/HEAD | sed 's|.*/||'
 ```
 
+### E6 — C1 meldet die Reihenfolge, zeigt aber nicht immer auf die Ursache
+
+Ein C1-Reihenfolgefehler bedeutet **nicht**, dass der Schlussblock falsch
+sortiert ist. In allen drei Fällen, die im Portfolio auftraten, war er korrekt —
+gemeldet wurde eine gleich klassifizierte Sektion weiter oben:
+
+| Repo | Auslöser | Zeile vs. Schlussblock |
+|---|---|---|
+| `swisstopo-mcp` | `## Security & Compliance` (Inhaltssektion) | 324 vs. 618–640 |
+| `register-mcp` | `### Security` unter `## Safety & Limits` | 468 vs. 529–548 |
+| `seco-labor-mcp` | `## Data License` (Datenlizenz-Sektion) | 216 vs. 237–256 |
+
+Der Titel allein ist nie die Ursache: `news-monitor-mcp` führt
+`## Security & Compliance` *als* Schluss-Sektion und ist damit sauber (D2). Der
+Fehler entsteht durch **Doppelbelegung** desselben Klassifikationsschlüssels —
+einmal als Inhalt, einmal als Dokumentsektion.
+
+Der Validator filtert deshalb vor der Reihenfolgeprüfung zweifach:
+
+1. **Ebene** — nur die flachste Ebene, auf der Schluss-Sektionen stehen. Ein
+   `###` unter einer Inhaltssektion ist keine Dokumentsektion. Nicht hart `##`,
+   sonst gilt ein durchgehend tiefer gegliedertes README als blockfrei.
+2. **Mehrfachnennung** — die *letzte* Nennung gewinnt.
+
+Über die 99 READMEs des Portfolios räumt **Last-Wins allein bereits alle drei
+Fälle ab** — auch `register-mcp`, weil das spätere `## Security` den Unterpunkt
+ohnehin verdrängt. Der Ebenenfilter trägt erst, wenn *keine* spätere
+Dokumentsektion folgt: dann hält der Unterpunkt die Klassifikation allein und
+würde ungefiltert einen Reihenfolgefehler erfinden. Genau dieser Fall steht als
+eigenes Fixture in `scripts/test_c1.py` — ohne ihn war der Ebenenfilter
+entfernbar, ohne dass ein Test rot wurde.
+
+Die Existenzprüfung (`Sektion '…' fehlt`) bleibt bewusst ebenenblind: eine
+vorhandene Sektion fälschlich als fehlend zu melden wäre schlimmer.
+
+**Vor dem Umsortieren also erst prüfen, wo die gemeldete Sektion steht:**
+
+```bash
+grep -n "^#\{1,4\} " README.md | grep -iE "contribut|security|licen|author"
+```
+
+Steht der Schlussblock bereits richtig, ist Umsortieren der falsche Fix — er
+zerstört die korrekte Reihenfolge. Zu klären ist dann die Doppelbelegung.
+
 ---
 
 ## F2 — 403 beim Push in ein archiviertes Repo
