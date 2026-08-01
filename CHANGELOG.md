@@ -17,6 +17,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **E1 reads every README language version, not only `README.md`.** Since the portfolio went bilingual, a tool documented in `README.de.md` alone was reported as undocumented — the same class of false alarm as the docstring example, one function further down. The READMEs come from `glob("README*.md")` rather than a fixed pair, so a third language is covered without another edit.
 - **«Documented nowhere» and «missing from one language version» are now separate findings.** The old check collapsed them into one message, which made the real gap and the translation gap indistinguishable. A tool absent from every README still reports `Tools nicht im README dokumentiert`; one that exists in some but not all reports `<file>: Tools fehlen in dieser Sprachfassung`, naming the file that lacks it. Verified on a fixture with all three states — documented in both, in German only, in neither.
 
+## [1.1.0] - 2026-07-31
+
 ### Added
 - Step 0 "Session intake": title, description, and topics are collected once, bundled in a single question, before any file is written; persisted to `.github/repo-meta.yml` as the single source of truth, including `author_label` (never normalized, rule D1), `default_branch`, `pypi_package`, and `mcp_name`
 - Backend detection before any GitHub operation, with an operation-by-operation mapping for `gh` CLI, GitHub MCP tools, and plain `git` — the `gh` CLI does not exist in Claude Code web and remote sessions
