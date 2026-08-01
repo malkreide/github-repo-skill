@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-08-01
+
+Zwei Fehlalarme in E1, beide derselben Klasse: Der Check las Dokumentation als
+Code, und er las nur eine von zwei Sprachfassungen. Dazu die `.gitattributes`,
+die diesem Repo als letztem im Portfolio fehlte.
+
 ### Added
 - **`.gitattributes` pinning text files to LF.** This repository was the last in the portfolio without one. It matters more here than elsewhere: `assets/` holds the templates copied into every repository created with this skill — gitignores, workflows, READMEs, the MIT licence — so a template that picks up CRLF seeds it into each repository it starts. The index was already LF-clean, so nothing was rewritten; this keeps a Windows checkout from introducing CRLF on a later commit. Covers `.toml` and `*.gitignore` beyond the portfolio's usual set, because both exist here, and the file itself, so the one file that states the rules is not the one without them.
 
