@@ -7,7 +7,52 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **`C1` meldete eine falsche Reihenfolge, obwohl der Schlussblock korrekt
+  sortiert war.** Die Prüfung klassifizierte jede Überschrift, deren Titel in
+  der Allowlist steht — unabhängig von Ebene und Position — und liess bei
+  Mehrfachnennung die *erste* gewinnen. Eine Inhaltssektion mit einem
+  Allowlist-Titel verdrängte damit den echten Schlussblock, und die Meldung
+  zeigte mehrere hundert Zeilen daneben.
+
+  Portfolio-weit betraf das drei Repos, mit drei verschiedenen Auslösern:
+  `## Security & Compliance` (swisstopo-mcp, Z. 324 statt 618–640), `### Security`
+  als Unterpunkt von `## Safety & Limits` (register-mcp) und `## Data License`
+  (seco-labor-mcp). In **allen dreien war der Schlussblock korrekt** — dem
+  Hinweis zu folgen und umzusortieren hätte ihn zerstört.
+
+  Der Titel ist nie die Ursache: `news-monitor-mcp` führt
+  `## Security & Compliance` *als* Schluss-Sektion und war immer sauber (D2).
+  Ursache ist die Doppelbelegung desselben Klassifikationsschlüssels.
+
+  Die Reihenfolgeprüfung filtert jetzt auf die flachste Ebene, auf der
+  Schluss-Sektionen stehen, und lässt bei Mehrfachnennung die letzte gewinnen.
+  Die Existenzprüfung (`Sektion '…' fehlt`) bleibt bewusst ebenenblind. Gemessen
+  über alle 99 READMEs des Portfolios: 4 Fehlmeldungen weg, sonst keine einzige
+  geänderte Zeile. Neue Regel `E6` in `references/review-rules.md`.
+
 ### Added
+
+- **`scripts/test_c1.py` — 14 Fixtures für die C1-Logik.** Hält beide Hälften
+  einzeln fest: die Filter müssen die Fehlmeldungen beseitigen, dürfen echte
+  Fehler aber nicht verstecken. Der schärfste Fall ist ein Duplikat *plus*
+  tatsächlich falsch sortiertem Schlussblock — eine zu aggressive
+  Last-Wins-Regel besteht alle anderen Fälle und fällt nur dort durch.
+
+  Per Mutationstest gegengeprüft, und die erste Fassung fiel dabei durch: der
+  Ebenenfilter war entfernbar, ohne dass ein Test rot wurde, weil im
+  register-Muster das spätere `## Security` den Unterpunkt schon per Last-Wins
+  verdrängt. Erst ein Fixture ohne spätere Dokumentsektion sichert ihn ab.
+  Läuft mit und ohne pytest.
+
+- **`.gitignore` für dieses Repo — es hatte bisher keine.** Aufgefallen durch
+  Schritt 9.1 (`git add -A --dry-run`) vor dem Push: eine
+  `scripts/__pycache__/*.pyc` wäre mitgegangen. Die mitgelieferte Vorlage
+  `assets/gitignore/claude-skill.gitignore` deckte Python-Bytecode nicht ab,
+  obwohl Skill-Repos regelmässig Skripte in `scripts/` ausliefern — sie ist um
+  `__pycache__/`, `*.py[cod]` und `.pytest_cache/` ergänzt, damit derselbe
+  Fehler nicht in jedes künftige Skill-Repo weitergereicht wird.
 
 - **Neuer Check `C8` — Versionsanker gegen die oberste CHANGELOG-Release-Überschrift.**
   Die Version steht je nach Repo an bis zu vier Orten: im Badge jeder
