@@ -91,8 +91,7 @@ github-repo-skill/
 │   └── workflows/                    ← ci.yml, publish.yml
 ├── references/
 │   ├── mcp-publishing.md             ← PyPI + MCP-Registry, vor jedem Release lesen
-│   ├── review-rules.md               ← vor Änderungen an bestehenden Repos lesen
-│   └── rpi-kernel-build.md · .de.md  ← Raspberry-Pi-Kernel: Build, Modul, Overlay
+│   └── review-rules.md               ← vor Änderungen an bestehenden Repos lesen
 ├── scripts/
 │   ├── validate_repo.py              ← Struktur- und Dokumentationsprüfung
 │   └── check_release_artifacts.py    ← Release-Gate
