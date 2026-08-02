@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-08-02
+
+Zwei Regeln aus dem v1.3.0-Release, beide aus Fehlern der Anleitung selbst:
+die Befehlsblöcke setzten eine Shell voraus, die der Leser nicht
+zwangsläufig hat, und die Tag-Kontrolle prüfte die falsche Frage.
+
 ### Added
 
 - **Shell-Abschnitt: die Befehlsblöcke sind Bash, der User sitzt oft in
