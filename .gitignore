@@ -15,3 +15,12 @@ config.local.*
 __pycache__/
 *.py[cod]
 .pytest_cache/
+
+# Release-Notes sind ein Zwischenprodukt, kein Repo-Inhalt: Schritt 12 legt sie
+# nach `/tmp` ab. Ist der Tag-Push von der Session-Policy gesperrt (403), wird
+# die Notes-Datei stattdessen an den User uebergeben und landet dabei leicht im
+# Arbeitsbaum. Sie gehoert nicht in die Historie — der Abschnitt steht im
+# CHANGELOG und laesst sich daraus jederzeit neu erzeugen.
+# Nur im Repo-Wurzelverzeichnis, damit eine bewusst gepflegte
+# `docs/release-notes-*.md` davon unberuehrt bleibt.
+/release-notes-*.md
