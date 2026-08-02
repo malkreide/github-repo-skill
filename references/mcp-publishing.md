@@ -98,6 +98,27 @@ Nach einem Fix entweder:
 `skip-existing: true` im PyPI-Step verhindert Doppel-Uploads, wenn ein Teil des
 Laufs schon durchgelaufen war.
 
+**Die zweite Hälfte derselben Regel: ein neu gesetzter Tag kann von Anfang an
+auf dem falschen Commit sitzen.** Steht die Arbeitskopie nicht auf dem
+aktuellen Default-Branch, nimmt `git tag` stillschweigend deren `HEAD`. Der
+Push läuft dabei sauber durch — es gibt keine Fehlermeldung, an der man es
+merken könnte.
+
+Gemessen an diesem Repo: ein Release-Tag landete dreimal in Folge auf einem
+21 Commits alten Stand. Das Ergebnis war ein Release, dessen Beschreibung die
+SHA-Härtung ankündigte, während sein Archiv noch die ungepinnten Workflows
+enthielt — die Behebung war beschrieben, aber nicht ausgeliefert.
+
+```bash
+git fetch origin --tags --force
+git rev-parse "v$VERSION^{}"      # muss identisch sein mit:
+git rev-parse origin/main
+```
+
+`^{}` dereferenziert das Tag-Objekt auf den Commit. Ohne das vergleicht man die
+SHA des Tag-Objekts — die sich bei jedem Neusetzen ändert, **auch wenn das Ziel
+gleich falsch bleibt**. Genau daran ist die Fehlersuche zweimal vorbeigelaufen.
+
 ---
 
 ## Nach dem Publish: F1 — PyPI-JSON-API liefert gecachte Antworten

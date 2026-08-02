@@ -7,6 +7,46 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Shell-Abschnitt: die Befehlsblöcke sind Bash, der User sitzt oft in
+  PowerShell.** Windows PowerShell 5.1 kennt `&&` nicht — die Zeile bricht mit
+  einem Parser-Fehler ab, **bevor** irgendetwas läuft. Das ist der stille Fall:
+  wer die Meldung übersieht, arbeitet auf einem veralteten Stand weiter und
+  merkt es Schritte später an einer falschen Ausgabe.
+
+  Beim v1.3.0-Release ist genau das passiert. `git checkout main && git pull
+  origin main` lief nie an, die Arbeitskopie blieb 21 Commits zurück, und der
+  Release-Tag landete **dreimal in Folge** auf dem alten Commit — jeder Push
+  für sich sauber. Die Ursache lag in der Anleitung, nicht bei dem, der sie
+  befolgt hat.
+
+  Die fünf `&&`-Verkettungen in `SKILL.md` sind entkoppelt, ein Befehl je
+  Zeile. Dazu eine kleine Tabelle für die beiden anderen Stolpersteine
+  (`grep` → `Select-String`, `command -v` → `Get-Command`).
+
+### Fixed
+
+- **Schritt 12 prüfte, *ob* der Tag ankam — nicht, *worauf* er zeigt.** Die
+  Kontrolle war `git ls-remote --tags origin`, und die war bei allen drei
+  Fehlversuchen grün. Ein Tag auf einem älteren Commit erzeugt einen Release,
+  dessen **Text** die Änderungen beschreibt und dessen **Archiv** sie nicht
+  enthält. Bei einem Security-Release ist das die gefährlichste Variante: der
+  Hinweis auf die Behebung wird ausgeliefert, die Behebung nicht.
+
+  Schritt 12.3 zieht jetzt `git pull` vor das Taggen, benennt den Commit
+  explizit statt ihn aus `HEAD` zu übernehmen, und 12.3b vergleicht
+  `git rev-parse "v$VERSION^{}"` gegen `origin/main`.
+
+  **`^{}` ist der Teil, der zählt.** Ohne die Dereferenzierung vergleicht man
+  die SHA des Tag-*Objekts* — und die ändert sich bei jedem Neusetzen, auch
+  wenn das Ziel gleich falsch bleibt. Daran ist die Fehlersuche zweimal
+  vorbeigelaufen, weil «der Tag ist neu» wie «der Tag ist korrigiert» aussah.
+
+  Dieselbe Gegenprobe steht bei A4 in `references/mcp-publishing.md`, wo die
+  Regel herkommt. Drei neue Zeilen in der Troubleshooting-Tabelle, damit das
+  Symptom auffindbar ist statt nur die Ursache.
+
 ## [1.3.0] - 2026-08-02
 
 Die mitgelieferten Workflows referenzierten jede Action über einen
