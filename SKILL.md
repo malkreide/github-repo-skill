@@ -19,7 +19,7 @@ Standard-Dateien, Secrets-Check, reproduzierbarer CI und Release-Gate.
 | `references/mcp-publishing.md` | Sobald ein `*-mcp`-Repo publiziert oder released wird. |
 | `references/review-rules.md` | **Vor** jeder Änderung an einem bestehenden Repo. |
 | `assets/templates/` | README-Vorlagen EN/DE |
-| `assets/workflows/` | `ci.yml`, `publish.yml` |
+| `assets/workflows/` | `ci.yml`, `publish.yml` (nach `.github/workflows/`), `dependabot.yml` (nach `.github/`) |
 | `assets/gitignore/`, `assets/LICENSE-MIT.txt` | Standard-Dateien |
 
 ## Vier Grundregeln
@@ -231,7 +231,8 @@ unerreichbar. Dasselbe bei `CONTRIBUTING.md`. Datei anlegen genügt nicht.
 ├── SECURITY.md         ← verlinkt aus der Sektion Security / Sicherheit
 ├── CONTRIBUTING.md     ← verlinkt aus Contributing / Mitwirken
 ├── docs/demo.png       ← wenn vorhanden: in BEIDEN Sprachfassungen einbinden
-└── .github/workflows/  ← ci.yml, publish.yml aus assets/workflows/
+├── .github/workflows/  ← ci.yml, publish.yml aus assets/workflows/
+└── .github/dependabot.yml  ← hält die SHA-Pins aktuell (8.5)
 ```
 
 ### Zusätzlich bei MCP-Servern
@@ -347,8 +348,9 @@ MAJOR = Breaking Change.
 
 ## Schritt 8: Python- und CI-Konfiguration
 
-Diese drei Punkte verursachen CI-Fehler, die **ohne Codeänderung** auftreten
-oder Fehler durchlassen.
+8.1–8.3 verursachen CI-Fehler, die **ohne Codeänderung** auftreten oder Fehler
+durchlassen. 8.5–8.6 betreffen nicht die Korrektheit des Laufs, sondern das,
+was er darf und was er kostet.
 
 ### 8.1 Linter-Regelsatz explizit pinnen
 
@@ -386,6 +388,61 @@ with pytest.raises(ValidationError):
 
 `assets/workflows/ci.yml` und — bei Python-Paketen — `publish.yml` nach
 `.github/workflows/`. `ci.yml` triggert auf `main` **und** `master`.
+
+`assets/workflows/dependabot.yml` gehört nach **`.github/dependabot.yml`**,
+nicht nach `.github/workflows/`. Es liegt nur deshalb im selben Ordner, weil
+das Bundle alle `.github`-Vorlagen an einem Ort hält.
+
+### 8.5 Actions auf den Commit-SHA pinnen, nicht auf den Tag
+
+**Ein Git-Tag ist verschiebbar.** Wer Schreibzugriff auf das Repo einer Action
+hat, kann einen Backdoor-Commit pushen und den bestehenden Versions-Tag darauf
+umhängen — `@v4` zeigt dann auf anderen Code als gestern, ohne dass sich im
+eigenen Repo eine Zeile geändert hat. Bei `tj-actions/changed-files` ist genau
+das im März 2025 passiert: sämtliche historischen Tags wurden auf einen Commit
+umgehängt, der Secrets aus den Runner-Umgebungsvariablen in die Logs schrieb,
+und die abhängigen Repos zogen ihn beim nächsten regulären Lauf.
+
+Ein Branch-Ref ist noch schwächer als ein Tag — er bewegt sich bei jedem Push.
+`pypa/gh-action-pypi-publish@release/v1` ist so eine Referenz, und der Schritt
+dahinter hält das PyPI-Token.
+
+```yaml
+- uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+```
+
+Der Versionskommentar ist kein Schmuck: ohne ihn ist nicht erkennbar, welche
+Version läuft. Dependabot zieht Hash und Kommentar gemeinsam nach.
+
+**SHA innerhalb des bereits deklarierten Majors auflösen.** Beim Pinnen eines
+`@v4` auf den SHA von `v7` wird aus einer Härtung eine Verhaltensänderung:
+
+```bash
+git ls-remote --tags https://github.com/actions/checkout \
+  | grep -vE '\^\{\}$' | grep -E 'v4\.[0-9]+\.[0-9]+$' | sort -k2 -V | tail -1
+```
+
+**Ohne `dependabot.yml` ist Pinning ein Rückschritt** — die Hashes frieren auf
+dem Stand des Tages ein, an dem das Repo entstand. Beides gehört zusammen.
+
+### 8.6 `permissions`, `concurrency`, `timeout-minutes`
+
+Drei Zeilen, die je einen Defekt der Voreinstellung beheben:
+
+| Block | Voreinstellung ohne ihn | Folge |
+|---|---|---|
+| `permissions: contents: read` | Repo-Default, je nach Alter und Organisation `read and write` | ein reiner Lese-Job trägt ein Token, das pushen und Releases anlegen darf |
+| `concurrency` + `cancel-in-progress` | keine | ein neuer Push auf denselben PR lässt den alten Lauf zu Ende laufen — beide werden abgerechnet |
+| `timeout-minutes` | 6 Stunden pro Job | eine Endlosschleife oder ein hängender Netzwerkaufruf leert das Monatskontingent unbemerkt |
+
+`permissions` gehört auf **Workflow-Ebene**. Steht es nur an einem Job, erbt
+jeder andere Job weiterhin den Repo-Default. Jobs heben sich einzeln an, was
+sie zusätzlich brauchen — in `publish.yml` etwa `id-token: write` für OIDC.
+
+**`cancel-in-progress` nicht in Release-Workflows.** Einen laufenden
+PyPI-Upload abzubrechen ist kein gespartes Kontingent, sondern ein halber
+Release. `assets/workflows/publish.yml` setzt deshalb bewusst nur
+`timeout-minutes`.
 
 ---
 
