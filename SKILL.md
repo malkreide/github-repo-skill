@@ -39,7 +39,8 @@ installiert.** Dort stehen nur die GitHub-MCP-Tools und `git` zur Verfügung. Vo
 der ersten GitHub-Operation feststellen, welches Backend gilt:
 
 ```bash
-command -v gh >/dev/null && gh auth status    # Treffer → Backend A
+gh --version        # Fehler = kein gh → Backend B oder C
+gh auth status      # gruen = Backend A
 ```
 
 | | Backend | Erkennung |
@@ -80,6 +81,30 @@ Richtlinienentscheidung — **nicht umgehen**, sondern melden. Ein nur lokal
 gesetzter Tag ist zudem verloren, sobald der ephemere Container endet. Vorgehen:
 Release-Notes extrahieren (Schritt 12), Notes-Datei und die drei Befehle an den
 User übergeben, Tag und Release aus einer Umgebung mit Tag-Push-Recht anlegen.
+
+### Shell bestimmen — die Blöcke hier sind Bash
+
+**Alle Befehlsblöcke in dieser Datei sind Bash.** Arbeitet der User unter
+Windows, ist es meist die PowerShell, und dort scheitern drei Dinge, die in
+Bash selbstverständlich sind:
+
+| Bash | Windows PowerShell 5.1 |
+|---|---|
+| `a && b` | **Parser-Fehler** — die Zeile läuft gar nicht erst an |
+| `… \| grep muster` | `… \| Select-String muster` |
+| `command -v gh` | `Get-Command gh` |
+
+Das `&&` ist der gefährliche Fall, weil er **still** ist: `git checkout main &&
+git pull origin main` bricht ab, bevor irgendetwas passiert. Wer die
+Fehlermeldung übersieht, arbeitet danach auf einem veralteten Stand weiter —
+und merkt es erst an einer falschen Ausgabe mehrere Schritte später. Genau so
+ist ein Release-Tag dreimal in Folge auf einem 21 Commits alten Commit
+gelandet, obwohl jeder Push für sich sauber durchlief.
+
+Deshalb: **Befehle einzeln je Zeile schreiben**, nicht mit `&&` verketten. Das
+funktioniert in beiden Shells und ist der Grund, warum die Blöcke hier so
+aussehen. Ist die Shell des Users unbekannt und der Befehl folgenschwer
+(Tag, Push, Release), vorher fragen oder die neutrale Form wählen.
 
 Was ein Backend nicht kann, wird **als offener Punkt in `repo-meta.yml`
 vermerkt** und beim nächsten Durchlauf mit `gh` nachgezogen — nicht stillschweigend
@@ -476,7 +501,8 @@ Exit-Code `0` = sauber, `1` = Findings. **Bei Findings: nicht pushen.**
 
 ```bash
 git grep -nEI '(api[_-]?key|secret|passwo?rd|token|bearer|BEGIN [A-Z ]*PRIVATE KEY)' | head -30
-git config user.name && git config user.email    # welche Adresse wird publiziert?
+git config user.name     # welche Adresse wird publiziert?
+git config user.email
 ```
 
 ### 9.4 Kontextspezifische Prüfung (öffentliche Verwaltung)
@@ -512,9 +538,12 @@ erneut nachfragen. Der folgende Block setzt **Backend A** voraus; für B und C
 gilt die Mapping-Tabelle oben.
 
 ```bash
-gh --version && gh auth status          # Voraussetzungen
+gh --version                            # Voraussetzungen
+gh auth status
 
-git init && git add . && git commit -m "Initial commit: {Beschreibung}"
+git init
+git add .
+git commit -m "Initial commit: {Beschreibung}"
 
 gh repo create {repo-name} \
   --public \                            # oder --private
@@ -549,7 +578,8 @@ erlaubt.
 
 ```bash
 git checkout -b {branch-name}
-git add -A && git commit -m "{type}: {Beschreibung}"
+git add -A
+git commit -m "{type}: {Beschreibung}"
 git push -u origin {branch-name}
 ```
 
@@ -584,11 +614,18 @@ sed -i '' "s/^## \[Unreleased\]/## [Unreleased]\n\n## [$VERSION] - $(date +%F)/"
 
 # 2. Version in pyproject.toml und server.json angleichen (müssen identisch sein)
 
-# 3. Tag setzen
-git tag -a "v$VERSION" -m "Release v$VERSION: {Beschreibung}"
+# 3. Tag setzen — auf dem AKTUELLEN Default-Branch, mit benanntem Commit
+git checkout main
+git pull origin main
+git rev-parse --short HEAD              # muss der Stand sein, der publiziert wird
+git tag -a "v$VERSION" "$(git rev-parse HEAD)" -m "Release v$VERSION: {Beschreibung}"
 git push origin "v$VERSION"
 # 403 hier = Tag-Push von der Session-Policy gesperrt (siehe Backend-Abschnitt).
-# Prüfen mit: git ls-remote --tags origin
+
+# 3b. GEGENPROBE — worauf zeigt der Tag? (A4)
+git fetch origin --tags --force
+git rev-parse "v$VERSION^{}"            # muss identisch sein mit:
+git rev-parse origin/main
 
 # 4. Nur den Abschnitt DIESER Version extrahieren
 awk -v v="## [$VERSION]" '
@@ -604,6 +641,26 @@ gh release create "v$VERSION" \
   --notes-file /tmp/release-notes.md --latest
 
 # 6. Badge in README.md UND README.de.md aktualisieren
+```
+
+**Der Tag ist nicht «gesetzt», wenn er remote existiert — sondern erst, wenn er
+auf dem richtigen Commit steht** (A4). `git ls-remote --tags` beantwortet nur
+die erste Frage. Der Unterschied ist nicht theoretisch: ein Tag, der auf einem
+älteren Commit sitzt, erzeugt einen Release, dessen **Text** die neuen
+Änderungen beschreibt und dessen **Archiv** sie nicht enthält. Bei einem
+Security-Release ist das die gefährlichste Variante — der Hinweis auf die
+Behebung wird ausgeliefert, die Behebung nicht.
+
+Der Fehler entsteht fast immer gleich: die Arbeitskopie steht nicht auf dem
+aktuellen Default-Branch, und `git tag` nimmt stillschweigend `HEAD`. Deshalb
+oben `git pull` davor, der Commit **benannt** statt aus `HEAD` übernommen, und
+die Gegenprobe danach.
+
+Endgültige Kontrolle nach dem Release — am Inhalt, nicht an den Refs:
+
+```bash
+curl -sL "https://github.com/{user}/{repo}/archive/refs/tags/v$VERSION.tar.gz" \
+  | tar xzO --wildcards '*/README.md' | grep -o 'version-[0-9.]*-'
 ```
 
 **Warum nicht `--notes-file CHANGELOG.md`:** das hängt den gesamten
@@ -695,6 +752,9 @@ falsche Änderung oder einen Fehlalarm verhindert:
 | `403` beim Push, Lesen geht | Repo archiviert | `gh repo view --json isArchived` (F2) |
 | `gh: command not found` | Web-/Remote-Session ohne CLI | Backend B oder C, siehe Mapping-Tabelle oben |
 | `403` beim Tag-Push, Branch-Push geht | Egress-Policy der Session lehnt `refs/tags/*` ab | nicht umgehen: Notes extrahieren, Tag und Release lokal anlegen (Backend-Abschnitt) |
+| Release-Text beschreibt Änderungen, die im Archiv fehlen | Tag sitzt auf einem älteren Commit — Push lief sauber, Ziel war falsch | `git rev-parse "v$VERSION^{}"` gegen `origin/main` (A4, Schritt 12.3b) |
+| Tag mehrfach neu gesetzt, Ziel bleibt falsch | Arbeitskopie steht nicht auf dem Default-Branch; `git tag` nimmt deren `HEAD` | `git pull` davor, Commit benennen: `git tag -a v… <sha>` (12.3) |
+| Befehl mit `&&` tut unter Windows nichts | PowerShell 5.1 kennt `&&` nicht — Parser-Fehler vor der Ausführung | Befehle einzeln je Zeile (Shell-Abschnitt) |
 | Topics lassen sich nicht setzen | Backend B hat kein Topic-Tool | Settings-UI, in `repo-meta.yml` unter `offen` vermerken |
 | Nach «Titel? Description? Tags?» in jeder Session | Schritt 0 übersprungen | `.github/repo-meta.yml` anlegen (0.3) |
 
