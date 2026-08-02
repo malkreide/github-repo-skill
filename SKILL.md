@@ -18,7 +18,7 @@ Standard-Dateien, Secrets-Check, reproduzierbarer CI und Release-Gate.
 | `scripts/test_emoji.py` | Nach jeder Änderung an `EMOJI_RE`: `python3 scripts/test_emoji.py` |
 | `references/mcp-publishing.md` | Sobald ein `*-mcp`-Repo publiziert oder released wird. |
 | `references/review-rules.md` | **Vor** jeder Änderung an einem bestehenden Repo. |
-| `references/repo-governance.md` | Sobald eine Regel **portfolioweit** gelten soll: Rulesets, Custom Properties, Terraform. |
+| `references/repo-governance.md` (EN: `.en.md`) | Sobald eine Regel **portfolioweit** gelten soll: Rulesets, Custom Properties, Terraform. |
 | `assets/templates/` | README-Vorlagen EN/DE |
 | `assets/workflows/` | `ci.yml`, `publish.yml` (nach `.github/workflows/`), `dependabot.yml` (nach `.github/`) |
 | `assets/gitignore/`, `assets/LICENSE-MIT.txt` | Standard-Dateien |

@@ -39,6 +39,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Englische Fassung `references/repo-governance.en.md`.** Beide Fassungen
+  verweisen im Kopf aufeinander; die deutsche bleibt die kanonische, wie bei
+  den übrigen Referenzen.
+
+  **Bewusst `.en.md` statt Umbenennung.** Bei den READMEs ist Englisch die
+  Basisdatei und Deutsch trägt das Sprachsuffix — hier ist es umgekehrt, weil
+  `references/` deutschsprachig ist und die Datei bereits unter ihrem Namen in
+  vier Stellen verlinkt war. Ein Tausch hätte diese Verweise gebrochen, ohne
+  etwas zu gewinnen.
+
+  Die wörtlich zitierten Doku-Stellen stehen in beiden Fassungen im englischen
+  Original — eine Übersetzung des Zitats wäre kein Zitat mehr.
+
 - **Referenz `references/repo-governance.md`** — Rulesets, Custom Properties
   und Terraform, für den Fall, dass eine Regel portfolioweit gelten soll.
   Ausgelöst wird sie genau dann, nicht beim Anlegen eines einzelnen Repos.
