@@ -13,7 +13,7 @@ author_label: Autor
 github_user: malkreide
 default_branch: main
 language: markdown
-version: 1.3.0
+version: 1.4.0
 confirmed: false        # Vorschlagswerte aus dem Repo abgeleitet, noch nicht bestätigt
 offen:
   - topics gegen die Repo-Settings abgleichen
