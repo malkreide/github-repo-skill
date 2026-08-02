@@ -59,7 +59,7 @@ command -v gh >/dev/null && gh auth status    # Treffer → Backend A
 | PR erstellen | `gh pr create` | `create_pull_request` | manuell |
 | CI-Status prüfen | `gh run list` | `pull_request_read` (`get_check_runs`), `actions_list` | github.com |
 | Default-Branch / Archivstatus | `gh repo view --json isArchived,defaultBranchRef` | `list_branches`, `search_repositories` | `git ls-remote --symref origin HEAD` |
-| Tag pushen | `git push origin v1.1.0` | dito — in Web-/Remote-Sessions oft mit `403` blockiert, siehe unten | dito |
+| Tag pushen | `git push origin "v$VERSION"` | dito — in Web-/Remote-Sessions oft mit `403` blockiert, siehe unten | dito |
 | Release | `gh release create` | kein Tool → Release manuell auf github.com | Release manuell auf github.com |
 | Secret Scanning aktivieren | `gh api -X PATCH …` (9.6) | `run_secret_scanning` scannt, aktiviert aber nicht → Settings-UI | Settings-UI |
 
