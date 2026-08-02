@@ -1,5 +1,7 @@
 # Regeln über viele Repos hinweg durchsetzen: Rulesets und IaC
 
+*Englische Fassung: [`repo-governance.en.md`](repo-governance.en.md).*
+
 Lies diese Datei, wenn eine Regel **portfolioweit** gelten soll statt in einem
 Repo — geschützte Branches, erzwungene Reviews, verbotene Dateitypen, ein
 Pflicht-Workflow. Für ein einzelnes neues Repo genügen die Schritte 8–10 der

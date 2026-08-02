@@ -87,7 +87,7 @@ github-repo-skill/
 ├── references/
 │   ├── mcp-publishing.md             ← PyPI + MCP registry, read before a release
 │   ├── review-rules.md               ← read before touching an existing repo
-│   └── repo-governance.md            ← rulesets and IaC across many repos
+│   └── repo-governance.md · .en.md   ← rulesets and IaC across many repos
 ├── scripts/
 │   ├── validate_repo.py              ← structure and documentation check
 │   └── check_release_artifacts.py    ← release gate
