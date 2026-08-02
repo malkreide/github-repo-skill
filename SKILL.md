@@ -18,6 +18,7 @@ Standard-Dateien, Secrets-Check, reproduzierbarer CI und Release-Gate.
 | `scripts/test_emoji.py` | Nach jeder Änderung an `EMOJI_RE`: `python3 scripts/test_emoji.py` |
 | `references/mcp-publishing.md` | Sobald ein `*-mcp`-Repo publiziert oder released wird. |
 | `references/review-rules.md` | **Vor** jeder Änderung an einem bestehenden Repo. |
+| `references/repo-governance.md` | Sobald eine Regel **portfolioweit** gelten soll: Rulesets, Custom Properties, Terraform. |
 | `assets/templates/` | README-Vorlagen EN/DE |
 | `assets/workflows/` | `ci.yml`, `publish.yml` (nach `.github/workflows/`), `dependabot.yml` (nach `.github/`) |
 | `assets/gitignore/`, `assets/LICENSE-MIT.txt` | Standard-Dateien |
@@ -62,6 +63,7 @@ command -v gh >/dev/null && gh auth status    # Treffer → Backend A
 | Tag pushen | `git push origin "v$VERSION"` | dito — in Web-/Remote-Sessions oft mit `403` blockiert, siehe unten | dito |
 | Release | `gh release create` | kein Tool → Release manuell auf github.com | Release manuell auf github.com |
 | Secret Scanning aktivieren | `gh api -X PATCH …` (9.6) | `run_secret_scanning` scannt, aktiviert aber nicht → Settings-UI | Settings-UI |
+| Rulesets lesen / setzen | `gh ruleset list\|view\|check`, sonst `gh api` | **kein Tool vorhanden** → Settings-UI, in `repo-meta.yml` als offen markieren | Settings-UI |
 
 **Tag-Pushes können gesperrt sein, obwohl Branch-Pushes funktionieren.** In
 Claude Code auf dem Web läuft `git` über einen Proxy, dessen Egress-Policy

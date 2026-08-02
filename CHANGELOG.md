@@ -39,6 +39,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Referenz `references/repo-governance.md`** — Rulesets, Custom Properties
+  und Terraform, für den Fall, dass eine Regel portfolioweit gelten soll.
+  Ausgelöst wird sie genau dann, nicht beim Anlegen eines einzelnen Repos.
+
+  **Beginnt mit der Frage nach dem Kontotyp**, weil sie den halben Rest
+  erledigt: Organisations-Rulesets, Zielauswahl über Custom Properties und
+  erzwungene Workflows setzen einen bezahlten Organisationsplan voraus. Bei
+  `owner.type == "User"` fällt die gesamte Ebene weg — dann sind der Validator
+  und die Vorlagen aus `assets/` die Durchsetzungsinstrumente, nicht die
+  Plattform. Diese Einordnung fehlt in der Quelle, aus der die Referenz stammt;
+  sie nennt Team **oder** Enterprise, die GitHub-Doku ist an dieser Stelle
+  enger.
+
+  Inhaltlich am dokumentierten Verhalten belegt statt paraphrasiert:
+  Regelsätze überlagern sich und die restriktivste Fassung gewinnt,
+  `evaluate` protokolliert ohne zu blockieren (der einzige gefahrlose Weg in
+  ein gewachsenes Portfolio), Push-Regeln greifen auf das gesamte
+  Fork-Netzwerk. Die Terraform-Beispiele sind am Quellcode des Providers
+  `integrations/github` gegengeprüft, nicht aus dem Gedächtnis notiert —
+  inklusive der drei einander ausschliessenden `repository_*`-Bedingungen.
+
+  Neue Zeile in der Backend-Tabelle: für Rulesets gibt es **kein MCP-Tool**.
+  `gh ruleset list|view|check` existiert (am Quellcode von `cli/cli` geprüft),
+  sonst `gh api` oder die Settings-UI — in Web-Sessions also ein offener Punkt
+  für `repo-meta.yml`, wie bei den Topics.
+
+  Der Schlussabschnitt bindet die D-Regeln aus `review-rules.md` ein: ein
+  zentraler Regelsatz macht aus «vereinheitlichen» keine bessere Idee. Vor dem
+  Scharfschalten dieselbe Frage wie bei jedem Sammel-Lauf.
+
 - **`permissions`, `concurrency` und `timeout-minutes` in beiden Workflows,
   neue Regel `8.6`.** Drei Voreinstellungen, die je in die falsche Richtung
   zeigen: ohne `permissions` gilt der Repo-Default, der auch `read and write`
