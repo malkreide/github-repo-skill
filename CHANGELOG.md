@@ -7,35 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Security
+## [1.3.0] - 2026-08-02
 
-- **Alle Actions in den mitgelieferten Workflows sind auf Commit-SHAs gepinnt.**
-  `assets/workflows/ci.yml` und `publish.yml` referenzierten `actions/checkout@v4`,
-  `actions/setup-python@v5`, `upload-`/`download-artifact@v4` — und
-  `pypa/gh-action-pypi-publish@release/v1`, also einen **Branch**, der sich bei
-  jedem Push des Maintainers verschiebt, in dem Schritt, der das PyPI-Token
-  hält.
-
-  Ein Tag ist kein unveränderlicher Zeiger. Wer Schreibzugriff auf das Repo
-  einer Action hat, hängt ihn auf einen Backdoor-Commit um; im eigenen Repo
-  ändert sich dabei keine Zeile. Bei `tj-actions/changed-files` ist das im
-  März 2025 passiert — die historischen Tags zeigten auf einen Commit, der
-  Secrets aus den Runner-Variablen in die Logs schrieb.
-
-  Das wog hier schwerer als in einem einzelnen Repo: die Templates wandern in
-  **jedes** Repo, das mit diesem Skill entsteht, die Exposition wurde also
-  weitergereicht.
-
-  **SHA innerhalb des deklarierten Majors aufgelöst**, nicht auf den neusten
-  Major gehoben: `checkout` steht bei v7, das Template deklarierte v4. Ein
-  Major-Sprung wäre eine Verhaltensänderung, keine Härtung. Jeder Hash per
-  `git ls-remote` aufgelöst, keiner aus dem Gedächtnis. Neue Regel `8.5`.
-
-- **`.github/dependabot.yml` als Vorlage** (`assets/workflows/dependabot.yml`).
-  Ohne sie wäre Pinning ein Rückschritt — die Hashes frieren auf dem Stand des
-  Tages ein, an dem das Repo entstand. Gruppiert alle Action-Updates zu einem
-  wöchentlichen PR: bei vielen Repos ist die Zahl der PRs das Problem, nicht
-  ihr Inhalt; was einzeln aufschlägt, wird weggeklickt statt gelesen.
+Die mitgelieferten Workflows referenzierten jede Action über einen
+beweglichen Ref — und wandern in jedes Repo, das mit diesem Skill entsteht.
+Das ist behoben, zusammen mit den drei Voreinstellungen, die ein Workflow
+sonst stillschweigend übernimmt. Dazu eine Referenz für Regeln, die über
+viele Repos hinweg gelten sollen.
 
 ### Added
 
@@ -102,56 +80,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   eigene `.github/dependabot.yml`. Ein Skill, der Pinning vorschreibt und
   seine eigenen Workflows auf beweglichen Tags lässt, wird nicht geglaubt.
 
-### Fixed
-
-- **`C5` meldete Typografie als Emoji.** `EMOJI_RE` nahm ganze Unicode-Blöcke
-  pauschal, darunter `U+2190–U+21FF` — den kompletten Pfeilblock. Die
-  Überschrift `The UID join — Zefix ↔ Amtsblatt` (register-mcp) galt deshalb als
-  emojihaltig. Das ist genau die zu breite Regel, vor der E4 warnt, nur trifft
-  sie Pfeile statt Umlaute.
-
-  Ein zweiter Bereich war noch gröber: `U+24C2–U+1F251` verschluckte nebenbei
-  **den gesamten CJK-Block** — `漢` galt als Emoji. Ebenso `✓`, `✗`, `⌘` und `Ⓜ`.
-
-  Die Erkennung folgt jetzt Unicodes Emoji_Presentation: Zeichen mit
-  Emoji-Standarddarstellung (`⚡`, `✨`) zählen allein, Zeichen mit
-  Textdarstellung (`⚖`, `❄`, `✈`, `↔`) erst mit dem Variantenselektor VS16.
-  An allen Überschriften des Portfolios gegengeprüft — die dort vorkommenden
-  Textdarstellungs-Emoji tragen ausnahmslos VS16, die Default-Emoji stehen
-  ausnahmslos nackt.
-
-  Gemessen über 50 Repos: **2 Fehlalarme weg, alle 200 echten C5-Befunde
-  erhalten**, sonst keine geänderte Zeile. Neue Regel `E7`.
-
-  Nebenwirkung mitbedacht: `normalise()` benutzt dieselbe Regex zum Strippen.
-  Der Variantenselektor wird jetzt mitgenommen, sonst bliebe er als
-  unsichtbarer Rest im Titel stehen und der exakte Vergleich (E3) scheiterte an
-  einem Zeichen, das man nicht sieht.
-
-- **`C1` meldete eine falsche Reihenfolge, obwohl der Schlussblock korrekt
-  sortiert war.** Die Prüfung klassifizierte jede Überschrift, deren Titel in
-  der Allowlist steht — unabhängig von Ebene und Position — und liess bei
-  Mehrfachnennung die *erste* gewinnen. Eine Inhaltssektion mit einem
-  Allowlist-Titel verdrängte damit den echten Schlussblock, und die Meldung
-  zeigte mehrere hundert Zeilen daneben.
-
-  Portfolio-weit betraf das drei Repos, mit drei verschiedenen Auslösern:
-  `## Security & Compliance` (swisstopo-mcp, Z. 324 statt 618–640), `### Security`
-  als Unterpunkt von `## Safety & Limits` (register-mcp) und `## Data License`
-  (seco-labor-mcp). In **allen dreien war der Schlussblock korrekt** — dem
-  Hinweis zu folgen und umzusortieren hätte ihn zerstört.
-
-  Der Titel ist nie die Ursache: `news-monitor-mcp` führt
-  `## Security & Compliance` *als* Schluss-Sektion und war immer sauber (D2).
-  Ursache ist die Doppelbelegung desselben Klassifikationsschlüssels.
-
-  Die Reihenfolgeprüfung filtert jetzt auf die flachste Ebene, auf der
-  Schluss-Sektionen stehen, und lässt bei Mehrfachnennung die letzte gewinnen.
-  Die Existenzprüfung (`Sektion '…' fehlt`) bleibt bewusst ebenenblind. Gemessen
-  über alle 99 READMEs des Portfolios: 4 Fehlmeldungen weg, sonst keine einzige
-  geänderte Zeile. Neue Regel `E6` in `references/review-rules.md`.
-
-### Added
 
 - **`scripts/test_emoji.py` — 47 Fixtures für die Emoji-Erkennung.** Hält alle
   drei Seiten fest: Typografie darf nicht gemeldet werden, echte Emoji müssen
@@ -207,6 +135,88 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `--json`-Ausgabe des eigenen Validators und scheitert, sobald dort ein
   C8-Finding oberhalb von INFO steht — eine Implementation, zwei Schweregrade,
   statt derselben Logik an zwei Stellen.
+
+
+### Fixed
+
+- **`C5` meldete Typografie als Emoji.** `EMOJI_RE` nahm ganze Unicode-Blöcke
+  pauschal, darunter `U+2190–U+21FF` — den kompletten Pfeilblock. Die
+  Überschrift `The UID join — Zefix ↔ Amtsblatt` (register-mcp) galt deshalb als
+  emojihaltig. Das ist genau die zu breite Regel, vor der E4 warnt, nur trifft
+  sie Pfeile statt Umlaute.
+
+  Ein zweiter Bereich war noch gröber: `U+24C2–U+1F251` verschluckte nebenbei
+  **den gesamten CJK-Block** — `漢` galt als Emoji. Ebenso `✓`, `✗`, `⌘` und `Ⓜ`.
+
+  Die Erkennung folgt jetzt Unicodes Emoji_Presentation: Zeichen mit
+  Emoji-Standarddarstellung (`⚡`, `✨`) zählen allein, Zeichen mit
+  Textdarstellung (`⚖`, `❄`, `✈`, `↔`) erst mit dem Variantenselektor VS16.
+  An allen Überschriften des Portfolios gegengeprüft — die dort vorkommenden
+  Textdarstellungs-Emoji tragen ausnahmslos VS16, die Default-Emoji stehen
+  ausnahmslos nackt.
+
+  Gemessen über 50 Repos: **2 Fehlalarme weg, alle 200 echten C5-Befunde
+  erhalten**, sonst keine geänderte Zeile. Neue Regel `E7`.
+
+  Nebenwirkung mitbedacht: `normalise()` benutzt dieselbe Regex zum Strippen.
+  Der Variantenselektor wird jetzt mitgenommen, sonst bliebe er als
+  unsichtbarer Rest im Titel stehen und der exakte Vergleich (E3) scheiterte an
+  einem Zeichen, das man nicht sieht.
+
+- **`C1` meldete eine falsche Reihenfolge, obwohl der Schlussblock korrekt
+  sortiert war.** Die Prüfung klassifizierte jede Überschrift, deren Titel in
+  der Allowlist steht — unabhängig von Ebene und Position — und liess bei
+  Mehrfachnennung die *erste* gewinnen. Eine Inhaltssektion mit einem
+  Allowlist-Titel verdrängte damit den echten Schlussblock, und die Meldung
+  zeigte mehrere hundert Zeilen daneben.
+
+  Portfolio-weit betraf das drei Repos, mit drei verschiedenen Auslösern:
+  `## Security & Compliance` (swisstopo-mcp, Z. 324 statt 618–640), `### Security`
+  als Unterpunkt von `## Safety & Limits` (register-mcp) und `## Data License`
+  (seco-labor-mcp). In **allen dreien war der Schlussblock korrekt** — dem
+  Hinweis zu folgen und umzusortieren hätte ihn zerstört.
+
+  Der Titel ist nie die Ursache: `news-monitor-mcp` führt
+  `## Security & Compliance` *als* Schluss-Sektion und war immer sauber (D2).
+  Ursache ist die Doppelbelegung desselben Klassifikationsschlüssels.
+
+  Die Reihenfolgeprüfung filtert jetzt auf die flachste Ebene, auf der
+  Schluss-Sektionen stehen, und lässt bei Mehrfachnennung die letzte gewinnen.
+  Die Existenzprüfung (`Sektion '…' fehlt`) bleibt bewusst ebenenblind. Gemessen
+  über alle 99 READMEs des Portfolios: 4 Fehlmeldungen weg, sonst keine einzige
+  geänderte Zeile. Neue Regel `E6` in `references/review-rules.md`.
+
+
+### Security
+
+- **Alle Actions in den mitgelieferten Workflows sind auf Commit-SHAs gepinnt.**
+  `assets/workflows/ci.yml` und `publish.yml` referenzierten `actions/checkout@v4`,
+  `actions/setup-python@v5`, `upload-`/`download-artifact@v4` — und
+  `pypa/gh-action-pypi-publish@release/v1`, also einen **Branch**, der sich bei
+  jedem Push des Maintainers verschiebt, in dem Schritt, der das PyPI-Token
+  hält.
+
+  Ein Tag ist kein unveränderlicher Zeiger. Wer Schreibzugriff auf das Repo
+  einer Action hat, hängt ihn auf einen Backdoor-Commit um; im eigenen Repo
+  ändert sich dabei keine Zeile. Bei `tj-actions/changed-files` ist das im
+  März 2025 passiert — die historischen Tags zeigten auf einen Commit, der
+  Secrets aus den Runner-Variablen in die Logs schrieb.
+
+  Das wog hier schwerer als in einem einzelnen Repo: die Templates wandern in
+  **jedes** Repo, das mit diesem Skill entsteht, die Exposition wurde also
+  weitergereicht.
+
+  **SHA innerhalb des deklarierten Majors aufgelöst**, nicht auf den neusten
+  Major gehoben: `checkout` steht bei v7, das Template deklarierte v4. Ein
+  Major-Sprung wäre eine Verhaltensänderung, keine Härtung. Jeder Hash per
+  `git ls-remote` aufgelöst, keiner aus dem Gedächtnis. Neue Regel `8.5`.
+
+- **`.github/dependabot.yml` als Vorlage** (`assets/workflows/dependabot.yml`).
+  Ohne sie wäre Pinning ein Rückschritt — die Hashes frieren auf dem Stand des
+  Tages ein, an dem das Repo entstand. Gruppiert alle Action-Updates zu einem
+  wöchentlichen PR: bei vielen Repos ist die Zahl der PRs das Problem, nicht
+  ihr Inhalt; was einzeln aufschlägt, wird weggeklickt statt gelesen.
+
 
 ## [1.2.0] - 2026-08-01
 
