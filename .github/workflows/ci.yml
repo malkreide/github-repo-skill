@@ -6,13 +6,26 @@ on:
   pull_request:
   workflow_dispatch:
 
+# B5: ohne diesen Block gilt der Repo-Default, der auch 'read and write' sein
+# kann. Dieser Workflow liest nur.
+permissions:
+  contents: read
+
+# B6: ein neuer Push auf denselben PR macht den laufenden Job wertlos.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   lint-and-validate:
     runs-on: ubuntu-latest
+    timeout-minutes: 10                       # B6
     steps:
-      - uses: actions/checkout@v4
+      # B4: SHA statt Tag. Tags sind verschiebbar; genau das war der
+      # tj-actions/changed-files-Vektor im Maerz 2025.
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with:
           python-version: "3.11"
 

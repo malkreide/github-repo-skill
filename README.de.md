@@ -88,7 +88,7 @@ github-repo-skill/
 │   ├── LICENSE-MIT.txt
 │   ├── gitignore/                    ← python, node, raspberry-pi, claude-skill
 │   ├── templates/                    ← README.md, README.de.md
-│   └── workflows/                    ← ci.yml, publish.yml
+│   └── workflows/                    ← ci.yml, publish.yml, dependabot.yml
 ├── references/
 │   ├── mcp-publishing.md             ← PyPI + MCP-Registry, vor jedem Release lesen
 │   └── review-rules.md               ← vor Änderungen an bestehenden Repos lesen

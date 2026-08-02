@@ -7,6 +7,58 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+
+- **Alle Actions in den mitgelieferten Workflows sind auf Commit-SHAs gepinnt.**
+  `assets/workflows/ci.yml` und `publish.yml` referenzierten `actions/checkout@v4`,
+  `actions/setup-python@v5`, `upload-`/`download-artifact@v4` — und
+  `pypa/gh-action-pypi-publish@release/v1`, also einen **Branch**, der sich bei
+  jedem Push des Maintainers verschiebt, in dem Schritt, der das PyPI-Token
+  hält.
+
+  Ein Tag ist kein unveränderlicher Zeiger. Wer Schreibzugriff auf das Repo
+  einer Action hat, hängt ihn auf einen Backdoor-Commit um; im eigenen Repo
+  ändert sich dabei keine Zeile. Bei `tj-actions/changed-files` ist das im
+  März 2025 passiert — die historischen Tags zeigten auf einen Commit, der
+  Secrets aus den Runner-Variablen in die Logs schrieb.
+
+  Das wog hier schwerer als in einem einzelnen Repo: die Templates wandern in
+  **jedes** Repo, das mit diesem Skill entsteht, die Exposition wurde also
+  weitergereicht.
+
+  **SHA innerhalb des deklarierten Majors aufgelöst**, nicht auf den neusten
+  Major gehoben: `checkout` steht bei v7, das Template deklarierte v4. Ein
+  Major-Sprung wäre eine Verhaltensänderung, keine Härtung. Jeder Hash per
+  `git ls-remote` aufgelöst, keiner aus dem Gedächtnis. Neue Regel `8.5`.
+
+- **`.github/dependabot.yml` als Vorlage** (`assets/workflows/dependabot.yml`).
+  Ohne sie wäre Pinning ein Rückschritt — die Hashes frieren auf dem Stand des
+  Tages ein, an dem das Repo entstand. Gruppiert alle Action-Updates zu einem
+  wöchentlichen PR: bei vielen Repos ist die Zahl der PRs das Problem, nicht
+  ihr Inhalt; was einzeln aufschlägt, wird weggeklickt statt gelesen.
+
+### Added
+
+- **`permissions`, `concurrency` und `timeout-minutes` in beiden Workflows,
+  neue Regel `8.6`.** Drei Voreinstellungen, die je in die falsche Richtung
+  zeigen: ohne `permissions` gilt der Repo-Default, der auch `read and write`
+  sein kann — ein reiner Lese-Job trägt dann ein Token, das pushen darf. Ohne
+  `concurrency` läuft der vom nächsten Push überholte Job zu Ende und wird
+  abgerechnet. Ohne `timeout-minutes` gilt eine Obergrenze von sechs Stunden
+  pro Job.
+
+  `permissions` steht auf Workflow-Ebene, nicht am einzelnen Job — sonst erbt
+  jeder Job, der es nicht selbst überschreibt, weiterhin den Default. Der
+  `publish`-Job hebt sich `id-token: write` einzeln an.
+
+  **`cancel-in-progress` bewusst nicht in `publish.yml`:** einen laufenden
+  PyPI-Upload abzubrechen ist kein gespartes Kontingent, sondern ein halber
+  Release.
+
+- **Die CI dieses Repos ist nach denselben Regeln gehärtet** und hat eine
+  eigene `.github/dependabot.yml`. Ein Skill, der Pinning vorschreibt und
+  seine eigenen Workflows auf beweglichen Tags lässt, wird nicht geglaubt.
+
 ### Fixed
 
 - **`C5` meldete Typografie als Emoji.** `EMOJI_RE` nahm ganze Unicode-Blöcke

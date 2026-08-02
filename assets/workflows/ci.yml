@@ -6,13 +6,36 @@ on:
   pull_request:
   workflow_dispatch:
 
+# B5: Ohne diesen Block erbt der Workflow die Default-Berechtigungen des Repos.
+# Je nach Alter und Organisation sind das 'read and write' — ein Job, der nur
+# liest, bekommt dann ein Token, das pushen und Releases anlegen darf. Auf
+# Workflow-Ebene setzen, nicht nur pro Job: sonst erbt jeder Job, der es nicht
+# selbst ueberschreibt, weiterhin den Default.
+permissions:
+  contents: read
+
+# B6: Ein neuer Push auf denselben PR macht den laufenden Job wertlos. Ohne
+# diesen Block laufen beide zu Ende — und beide werden abgerechnet.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   lint-and-test:
     runs-on: ubuntu-latest
+    # B6: Faengt Endlosschleifen und haengende Netzwerkaufrufe ab, bevor sie
+    # das Minutenkontingent leeren. GitHubs Default sind 6 Stunden pro Job.
+    timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      # B4: Actions sind auf den Commit-SHA gepinnt, nicht auf den Tag. Tags
+      # sind verschiebbar — beim tj-actions/changed-files-Vorfall (Maerz 2025)
+      # wurden die bestehenden Versions-Tags auf einen Backdoor-Commit
+      # umgehaengt, und die abhaengigen Repos zogen ihn beim naechsten
+      # regulaeren Lauf. Der Kommentar dahinter haelt lesbar, welche Version
+      # der Hash ist; Dependabot zieht Hash und Kommentar gemeinsam nach.
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with:
           python-version: "3.11"
 
