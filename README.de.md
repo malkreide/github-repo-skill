@@ -91,7 +91,8 @@ github-repo-skill/
 │   └── workflows/                    ← ci.yml, publish.yml, dependabot.yml
 ├── references/
 │   ├── mcp-publishing.md             ← PyPI + MCP-Registry, vor jedem Release lesen
-│   └── review-rules.md               ← vor Änderungen an bestehenden Repos lesen
+│   ├── review-rules.md               ← vor Änderungen an bestehenden Repos lesen
+│   └── repo-governance.md            ← Rulesets und IaC über viele Repos
 ├── scripts/
 │   ├── validate_repo.py              ← Struktur- und Dokumentationsprüfung
 │   └── check_release_artifacts.py    ← Release-Gate
