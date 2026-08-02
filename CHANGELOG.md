@@ -7,24 +7,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added
-
-- **Referenz `references/rpi-kernel-build.md` (EN) und `.de.md` (DE)** — Bau des
-  Raspberry-Pi-Linux-Kernels, kondensiert aus der Herstellerdokumentation.
-  Ausgelöst wird sie vom Projekttyp `raspberry-pi`, sobald ein Repo einen
-  Kernel-Build, ein Kernelmodul oder ein Device-Tree-Overlay enthält.
-
-  Aufgenommen sind vor allem die Stellen, an denen sich zwei Wege
-  unterscheiden und ein README das leicht verwechselt: die Modelltabelle
-  (`KERNEL`, defconfig, Architektur), `Image.gz` beim nativen Build gegenüber
-  `Image` beim Cross-Compile, der `.dtb`-Pfad für 32 Bit vor und ab Kernel 6.5,
-  und `sudo env PATH=$PATH`, weil `sudo` die Cross-Toolchain sonst aus dem
-  `PATH` wirft.
-
-  Anders als die übrigen Referenzen stammt diese nicht aus Portfolio-Befunden;
-  das steht so im Kopf der Datei. Der Validator prüft nur `README*.md`,
-  `references/` bleibt unberührt — keine Regeländerung, keine neue Prüfung.
-
 ### Fixed
 
 - **`C5` meldete Typografie als Emoji.** `EMOJI_RE` nahm ganze Unicode-Blöcke

@@ -18,7 +18,6 @@ Standard-Dateien, Secrets-Check, reproduzierbarer CI und Release-Gate.
 | `scripts/test_emoji.py` | Nach jeder Änderung an `EMOJI_RE`: `python3 scripts/test_emoji.py` |
 | `references/mcp-publishing.md` | Sobald ein `*-mcp`-Repo publiziert oder released wird. |
 | `references/review-rules.md` | **Vor** jeder Änderung an einem bestehenden Repo. |
-| `references/rpi-kernel-build.md` (EN) · `.de.md` (DE) | Sobald ein `raspberry-pi`-Repo einen Kernel-Build, ein Kernelmodul oder ein Device-Tree-Overlay enthält. |
 | `assets/templates/` | README-Vorlagen EN/DE |
 | `assets/workflows/` | `ci.yml`, `publish.yml` |
 | `assets/gitignore/`, `assets/LICENSE-MIT.txt` | Standard-Dateien |
@@ -192,7 +191,7 @@ Regeln für die **Vorschläge** aus dem Intake (0.2). Liegen die Werte bereits i
 |---|---|
 | `mcp-server` | MCP, Model Context Protocol, Tools für LLMs |
 | `claude-skill` | SKILL.md, Claude Skills, Prompting-Framework |
-| `raspberry-pi` | Pi, GPIO, Edge AI, Hailo, Sensor · bei Kernel-Build, Kernelmodul oder Device-Tree-Overlay zusätzlich `references/rpi-kernel-build.md` lesen |
+| `raspberry-pi` | Pi, GPIO, Edge AI, Hailo, Sensor |
 | `python-lib` | Python-Package, Library, Module |
 | `other` | Alles andere |
 
