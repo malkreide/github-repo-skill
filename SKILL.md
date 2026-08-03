@@ -692,6 +692,7 @@ falsche Änderung oder einen Fehlalarm verhindert:
 | E6 | C1-Reihenfolgefehler zeigt oft auf eine Inhaltssektion, nicht auf den Schlussblock — vor dem Umsortieren prüfen, wo die gemeldete Sektion steht |
 | E7 | Emoji ≠ «Zeichen über U+2000». `↔` ist Typografie, `↔️` ein Emoji — Textdarstellungs-Zeichen zählen erst mit VS16 |
 | F2 | 403 beim Push: zuerst Archiv-Status prüfen, nicht Berechtigungen |
+| F3 | Ein abgebrochener Sweep ist kein Teilergebnis — nicht erreichte Repos zuerst und namentlich nennen |
 
 ---
 
@@ -757,12 +758,14 @@ falsche Änderung oder einen Fehlalarm verhindert:
 | Befehl mit `&&` tut unter Windows nichts | PowerShell 5.1 kennt `&&` nicht — Parser-Fehler vor der Ausführung | Befehle einzeln je Zeile (Shell-Abschnitt) |
 | Topics lassen sich nicht setzen | Backend B hat kein Topic-Tool | Settings-UI, in `repo-meta.yml` unter `offen` vermerken |
 | Nach «Titel? Description? Tags?» in jeder Session | Schritt 0 übersprungen | `.github/repo-meta.yml` anlegen (0.3) |
+| Lauf über viele Repos bricht mittendrin ab | Rate-Limit — primär oder Secondary/Abuse | Nicht erreichte Repos im Bericht **zuerst und namentlich** nennen; ein Teilergebnis liest sich sonst wie ein vollständiges (F3) |
 
 ---
 
 ## Schnellreferenz: gh (Backend A)
 
 ```bash
+gh api rate_limit              # vor jedem Lauf über mehrere Repos (F3)
 gh repo view {user}/{repo}
 gh repo view {user}/{repo} --json isArchived,defaultBranchRef
 gh repo edit --add-topic {topic} / --remove-topic {topic}

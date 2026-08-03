@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Regel F3: ein abgebrochener Sweep ist kein Teilergebnis.** Ein Durchlauf
+  über das Portfolio reisst das Rate-Limit — real beobachtet in Backend B,
+  mitten in einer Verifikation, während andere Endpunkte noch antworteten.
+  Gefährlich ist nicht der Fehler, sondern der Bericht danach: Ein Sweep, der
+  bei Repo 19 von 32 abbricht, liefert eine Tabelle mit 18 Zeilen, und nichts
+  darin sagt, dass 13 fehlen. Wer sie liest, liest sie als vollständig. Die
+  Regel verlangt, die nicht erreichten Repos mitzuführen und im Bericht
+  **zuerst** zu nennen — nicht erreicht ist nicht bestanden.
+
+  Der Schritt zum Stand-Messen ist backend-abhängig und steht deshalb als
+  Tabelle: `gh api rate_limit` gibt es nur in Backend A. In Backend B — dem
+  Backend, in dem der Fall auftrat — existiert kein Kontingent-Tool; dort zählt
+  stattdessen, dass der Lauf nach jedem Repo einen Zwischenstand schreibt und
+  damit wiederaufsetzbar ist.
+
+  Bewusst ohne Zahlenwerte: Die Grenzen hängen an Token-Art und Endpunkt. Eine
+  eingetragene Zahl würde als gemessen gelesen, ohne es zu sein.
+
+  Eingetragen in `references/review-rules.md` (Regeltext, plus Schritt 0 und 6
+  im Ablauf für mehrere Repos) und in `SKILL.md` (Regel-Index, Troubleshooting,
+  `gh`-Schnellreferenz).
+
 ## [1.4.0] - 2026-08-02
 
 Zwei Regeln aus dem v1.3.0-Release, beide aus Fehlern der Anleitung selbst:

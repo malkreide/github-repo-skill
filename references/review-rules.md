@@ -170,10 +170,50 @@ Entarchivieren: `gh repo unarchive <owner>/<repo>`
 
 ---
 
+## F3 — Ein abgebrochener Sweep ist kein Teilergebnis
+
+Ein Durchlauf über das Portfolio reisst das Rate-Limit: viele Repos mal mehrere
+API-Aufrufe. Real beobachtet in **Backend B**, mitten in einer Verifikation —
+ein Listen-Aufruf brach ab mit «API rate limit already exceeded for user ID …»,
+während andere Endpunkte noch antworteten. Von aussen sah der Lauf aus, als
+liefe er weiter.
+
+**Gefährlich ist nicht der Fehler, sondern der Bericht danach.** Ein Sweep, der
+bei Repo 19 von 32 abbricht, liefert eine Tabelle mit 18 Zeilen, und nichts
+darin sagt, dass 13 fehlen. Wer sie liest, liest sie als vollständig.
+
+**Regel:** Jeder Lauf über mehrere Repos führt mit, welche Repos er **nicht**
+erreicht hat, und der Bericht nennt sie ausdrücklich und zuerst. Nicht erreicht
+ist nicht bestanden — dieselbe Unterscheidung wie zwischen «geprüft und nichts
+gefunden» und «gar nicht geprüft».
+
+Stand messen, bevor der Lauf beginnt:
+
+| Backend | Vorgehen |
+|---|---|
+| A (`gh`) | `gh api rate_limit` — Rest-Kontingent vor dem Sweep festhalten |
+| B (MCP) | Kein Kontingent-Tool. Stattdessen Aufrufe je Repo zählen und den Lauf so takten, dass er bei einem Abbruch **wiederaufsetzbar** ist: Zwischenstand nach jedem Repo schreiben, nicht erst am Ende. |
+| C (weder noch) | Entfällt — ohne API kein Sweep. |
+
+Bei 403/429 mitten im Lauf: abbrechen und melden, nicht auf gut Glück
+weiterlaufen. Primäres Limit und Secondary-/Abuse-Limit sind getrennt; das
+zweite schlägt auf Bursts an, nicht auf Volumen — dort hilft Sequenzieren, beim
+primären nur Warten.
+
+Bewusst ohne Zahlenwerte: Die Grenzen hängen an Token-Art und Endpunkt und
+ändern sich. Eine hier eingetragene Zahl würde als gemessen gelesen, ohne es zu
+sein.
+
+---
+
 ## Ablauf für einen Durchlauf über mehrere Repos
 
+0. Rate-Limit-Ausgangsstand festhalten und den Lauf wiederaufsetzbar anlegen (F3)
 1. `python3 scripts/validate_repo.py <repo>` je Repo, Ausgaben sammeln
 2. ERROR-Findings sichten — **nicht blind fixen**, gegen D1–D3 gegenprüfen
 3. Änderungen einzeln vornehmen, pro Repo committen
 4. Bei README-Änderungen: Marker-Anzahl vorher/nachher vergleichen (A1)
 5. Vor dem Push: Default-Branch (E5) und Archiv-Status (F2) prüfen
+6. Im Abschlussbericht **zuerst** die nicht erreichten Repos namentlich nennen,
+   dann die Befunde — sonst liest sich ein abgebrochener Lauf wie ein
+   vollständiger (F3)
