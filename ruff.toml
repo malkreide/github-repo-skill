@@ -2,6 +2,12 @@
 # und der ändert sich zwischen Releases, was CI ohne Codeänderung rot macht.
 target-version = "py39"
 
+# Regel 8.1, zweite Hälfte: explizit, obwohl es dem ruff-Default entspricht.
+# `ruff format` bricht eine Zeile um, sobald sie nicht mehr passt — dieselbe
+# Datei ist bei 88 mehrzeilig und bei 100 einzeilig. Steht der Wert nirgends,
+# sieht der Bruch beim Kopieren zwischen Repos nach einem Fehler am Skript aus.
+line-length = 88
+
 [lint]
 select = ["E", "F", "W", "I", "UP"]
 ignore = ["E501"]

@@ -32,31 +32,76 @@ CLOSING_DE = ["contributing", "security", "license", "author"]
 HEADINGS = {
     "en": {
         "contributing": {"contributing", "contributing & support"},
-        "security": {"security", "security & compliance", "security and compliance",
-                     "security & privacy", "security policy"},
-        "license": {"license", "licence", "licenses", "licences",
-                    "software licence", "software license",
-                    "data licence", "data license", "license & data licence"},
+        "security": {
+            "security",
+            "security & compliance",
+            "security and compliance",
+            "security & privacy",
+            "security policy",
+        },
+        "license": {
+            "license",
+            "licence",
+            "licenses",
+            "licences",
+            "software licence",
+            "software license",
+            "data licence",
+            "data license",
+            "license & data licence",
+        },
         "author": {"author", "authors", "maintainer", "maintainers"},
     },
     "de": {
         "contributing": {"mitwirken", "mitmachen", "beitragen", "mitarbeit"},
-        "security": {"sicherheit", "sicherheit & compliance", "sicherheit und compliance",
-                     "sicherheit & datenschutz", "sicherheitsrichtlinie"},
-        "license": {"lizenz", "lizenzen", "software-lizenz", "softwarelizenz",
-                    "datenlizenz", "daten-lizenz", "lizenz & datenlizenz"},
+        "security": {
+            "sicherheit",
+            "sicherheit & compliance",
+            "sicherheit und compliance",
+            "sicherheit & datenschutz",
+            "sicherheitsrichtlinie",
+        },
+        "license": {
+            "lizenz",
+            "lizenzen",
+            "software-lizenz",
+            "softwarelizenz",
+            "datenlizenz",
+            "daten-lizenz",
+            "lizenz & datenlizenz",
+        },
         # D1: Selbstbezeichnungen sind keine Formatabweichung — alle Varianten gelten.
-        "author": {"autor", "autorin", "autor·in", "autor:in", "autor*in",
-                   "autor/in", "autorin / autor", "autor / autorin", "autoren"},
+        "author": {
+            "autor",
+            "autorin",
+            "autor·in",
+            "autor:in",
+            "autor*in",
+            "autor/in",
+            "autorin / autor",
+            "autor / autorin",
+            "autoren",
+        },
     },
 }
 
 # Englische Sektionstitel, die in einer deutschen Datei ein Fehler sind (C6).
 # 'Changelog' und 'Installation' fehlen bewusst: beides sind im Deutschen
 # gebräuchliche Titel, technische Begriffe bleiben englisch.
-EN_ONLY_IN_DE = {"contributing", "security", "license", "licence", "author",
-                 "overview", "features", "prerequisites", "usage",
-                 "configuration", "project structure", "available tools"}
+EN_ONLY_IN_DE = {
+    "contributing",
+    "security",
+    "license",
+    "licence",
+    "author",
+    "overview",
+    "features",
+    "prerequisites",
+    "usage",
+    "configuration",
+    "project structure",
+    "available tools",
+}
 
 # C5/E7 — Emoji-Erkennung. Unicode kennt zwei Klassen, und der Unterschied ist
 # genau der zwischen einem Emoji und einem Satzzeichen:
@@ -75,7 +120,7 @@ EN_ONLY_IN_DE = {"contributing", "security", "license", "licence", "author",
 # Textdarstellungs-Emoji (⚖ ⚙ ⛰ ✈ ❄) tragen ausnahmslos VS16, die
 # Default-Emoji (⚡ ✨) stehen ausnahmslos nackt. `scripts/test_emoji.py` haelt
 # beide Seiten fest.
-_EMOJI_PICTOGRAPH = "\U0001F000-\U0001FAFF"
+_EMOJI_PICTOGRAPH = "\U0001f000-\U0001faff"
 
 # BMP-Zeichen mit Emoji_Presentation=Yes — vollstaendige Liste ausserhalb der
 # Pictograph-Ebenen. Nicht als Bereich zusammenfassbar: sie liegen verstreut
@@ -90,10 +135,10 @@ _EMOJI_DEFAULT = (
 
 # Unsichtbare Steuerzeichen bewusst als Escape, nicht als Literal: im Quelltext
 # waeren sie nicht zu sehen und beim naechsten Editieren still verloren.
-_VS16 = "\uFE0F"      # Emoji-Darstellung erzwingen
-_VS15 = "\uFE0E"      # Textdarstellung erzwingen
-_ZWJ = "\u200D"       # verbindet Emoji-Sequenzen
-_KEYCAP = "\u20E3"    # Keycap-Combiner (Ziffer + VS16 + U+20E3)
+_VS16 = "\ufe0f"  # Emoji-Darstellung erzwingen
+_VS15 = "\ufe0e"  # Textdarstellung erzwingen
+_ZWJ = "\u200d"  # verbindet Emoji-Sequenzen
+_KEYCAP = "\u20e3"  # Keycap-Combiner (Ziffer + VS16 + U+20E3)
 
 EMOJI_RE = re.compile(
     # Emoji; der Variantenselektor wird mitgenommen, sonst bliebe er in
@@ -103,18 +148,26 @@ EMOJI_RE = re.compile(
     # Zeichen mit Textdarstellung — nur mit VS16 ein Emoji. Der Bereich
     # U+203C..U+3299 deckt Pfeile, technische Symbole und Dingbats ab;
     # ohne den Selektor greift hier nichts.
-    f"|[\u203C-\u3299]{_VS16}"
+    f"|[\u203c-\u3299]{_VS16}"
     # Verwaiste Selektoren, ZWJ und Keycap-Combiner.
     f"|[{_VS16}{_ZWJ}{_KEYCAP}]"
 )
 MARKER_RE = re.compile(r"<!--\s*mcp-name:\s*([^\s>]+)\s*-->")
 MD_IMG_RE = re.compile(r"!\[[^\]]*\]\(([^)\s]+)")
 HTML_IMG_RE = re.compile(r"<img[^>]+src=[\"']([^\"']+)[\"']", re.IGNORECASE)
-BADGE_HOSTS = ("shields.io", "badge.fury.io", "badgen.net", "codecov.io",
-               "github.com/.*/workflows/.*badge", "img.shields.io")
+BADGE_HOSTS = (
+    "shields.io",
+    "badge.fury.io",
+    "badgen.net",
+    "codecov.io",
+    "github.com/.*/workflows/.*badge",
+    "img.shields.io",
+)
 ANCHOR_LINK_RE = re.compile(r"\]\(#([^)]+)\)")
-BOLD_AUTHOR_RE = re.compile(r"^\*\*(author|autor|autorin|autor·in|maintainer)[^*]*\*\*\s*$",
-                            re.IGNORECASE | re.MULTILINE)
+BOLD_AUTHOR_RE = re.compile(
+    r"^\*\*(author|autor|autorin|autor·in|maintainer)[^*]*\*\*\s*$",
+    re.IGNORECASE | re.MULTILINE,
+)
 
 
 class Report:
@@ -124,9 +177,9 @@ class Report:
     def add(self, level: str, rule: str, msg: str) -> None:
         self.items.append({"level": level, "rule": rule, "message": msg})
 
-    error = lambda self, rule, msg: self.add("ERROR", rule, msg)      # noqa: E731
-    warn = lambda self, rule, msg: self.add("WARN", rule, msg)        # noqa: E731
-    info = lambda self, rule, msg: self.add("INFO", rule, msg)        # noqa: E731
+    error = lambda self, rule, msg: self.add("ERROR", rule, msg)  # noqa: E731
+    warn = lambda self, rule, msg: self.add("WARN", rule, msg)  # noqa: E731
+    info = lambda self, rule, msg: self.add("INFO", rule, msg)  # noqa: E731
 
     @property
     def failed(self) -> bool:
@@ -222,11 +275,15 @@ def check_readme(path: Path, lang: str, repo: Path, rep: Report) -> None:
         dedup = [c for i, c in enumerate(block) if last[c] == i]
         ranked = [expected.index(c) for c in dedup]
         if ranked != sorted(ranked):
-            rep.error("C1", f"{path.name}: Schluss-Sektionen in falscher Reihenfolge: {dedup}")
+            rep.error(
+                "C1", f"{path.name}: Schluss-Sektionen in falscher Reihenfolge: {dedup}"
+            )
 
     # C3 — Author als Überschrift, nicht als Fettdruck
     if BOLD_AUTHOR_RE.search(strip_code_fences(text)):
-        rep.error("C3", f"{path.name}: Author/Autor als Fettdruck statt als Überschrift")
+        rep.error(
+            "C3", f"{path.name}: Author/Autor als Fettdruck statt als Überschrift"
+        )
 
     # C5 + E4 — Emoji in Überschriften, mit Anker-Warnung
     anchors = set(ANCHOR_LINK_RE.findall(text))
@@ -242,7 +299,10 @@ def check_readme(path: Path, lang: str, repo: Path, rep: Report) -> None:
     if lang == "de":
         for _, title in hs:
             if normalise(title) in EN_ONLY_IN_DE:
-                rep.error("C6", f"{path.name}: englische Überschrift '{title}' in deutscher Datei")
+                rep.error(
+                    "C6",
+                    f"{path.name}: englische Überschrift '{title}' in deutscher Datei",
+                )
 
     # C2 — vorhandene Dokumente müssen verlinkt sein
     for doc in ("SECURITY.md", "CONTRIBUTING.md"):
@@ -262,7 +322,10 @@ def check_readme(path: Path, lang: str, repo: Path, rep: Report) -> None:
             rep.error("C4", f"{path.name}: Bild '{src}' referenziert, Datei fehlt")
 
     if lang == "de" and "ß" in text:
-        rep.error("DE", f"{path.name}: 'ß' gefunden — Schweizer Rechtschreibung verwendet 'ss'")
+        rep.error(
+            "DE",
+            f"{path.name}: 'ß' gefunden — Schweizer Rechtschreibung verwendet 'ss'",
+        )
 
 
 def check_demo_parity(repo: Path, rep: Report) -> None:
@@ -274,7 +337,8 @@ def check_demo_parity(repo: Path, rep: Report) -> None:
     for p in (en, de):
         t = p.read_text(encoding="utf-8", errors="replace")
         has[p.name] = bool(images(t)) or any(
-            normalise(x) == "demo" for _, x in headings(t))
+            normalise(x) == "demo" for _, x in headings(t)
+        )
     if has["README.md"] != has["README.de.md"]:
         missing = [k for k, v in has.items() if not v]
         rep.error("C4", f"Demo/Bild nur in einer Sprachfassung — fehlt in {missing[0]}")
@@ -295,10 +359,15 @@ def check_mcp_marker(repo: Path, rep: Report) -> None:
     markers = MARKER_RE.findall(target.read_text(encoding="utf-8", errors="replace"))
     rep.info("A1", f"mcp-name-Marker in {readme_name}: {len(markers)} → {markers}")
     if not markers:
-        rep.error("A1", f"{readme_name} hat keinen <!-- mcp-name: ... --> Marker. "
-                        "PyPI-Releases sind unveränderlich — vor dem Release ergänzen.")
+        rep.error(
+            "A1",
+            f"{readme_name} hat keinen <!-- mcp-name: ... --> Marker. "
+            "PyPI-Releases sind unveränderlich — vor dem Release ergänzen.",
+        )
     elif len(markers) > 1:
-        rep.warn("A1", f"{readme_name} hat {len(markers)} Marker — genau einer erwartet")
+        rep.warn(
+            "A1", f"{readme_name} hat {len(markers)} Marker — genau einer erwartet"
+        )
 
     sj = repo / "server.json"
     if sj.exists() and markers:
@@ -322,8 +391,11 @@ def check_server_json(repo: Path, rep: Report) -> None:
         return
     desc = data.get("description", "")
     if len(desc) > 100:
-        rep.error("A2", f"server.json description ist {len(desc)} Zeichen "
-                        f"(max. 100) — Registry antwortet sonst mit 422")
+        rep.error(
+            "A2",
+            f"server.json description ist {len(desc)} Zeichen "
+            f"(max. 100) — Registry antwortet sonst mit 422",
+        )
     else:
         rep.info("A2", f"server.json description: {len(desc)}/100 Zeichen")
 
@@ -332,8 +404,11 @@ def check_server_json(repo: Path, rep: Report) -> None:
         raw = pyproject.read_text(encoding="utf-8", errors="replace")
         m = re.search(r'^\s*version\s*=\s*["\']([^"\']+)["\']', raw, re.MULTILINE)
         if m and m.group(1) != data["version"]:
-            rep.error("A4", f"Versionsdrift: pyproject {m.group(1)} ≠ "
-                            f"server.json {data['version']}")
+            rep.error(
+                "A4",
+                f"Versionsdrift: pyproject {m.group(1)} ≠ "
+                f"server.json {data['version']}",
+            )
 
 
 def check_ruff_config(repo: Path, rep: Report) -> None:
@@ -345,9 +420,15 @@ def check_ruff_config(repo: Path, rep: Report) -> None:
         rel = py.relative_to(repo)
         if "[tool.ruff" in raw or "ruff" in raw:
             if not re.search(r"\[tool\.ruff\.lint\][^\[]*select\s*=", raw, re.DOTALL):
-                rep.error("B1", f"{rel}: kein expliziter [tool.ruff.lint] select — "
-                                "CI wird bei ruff-Updates ohne Codeänderung rot")
-        if re.search(r'ruff\s*>=\s*[\d.]+["\']', raw) and "<" not in raw.split("ruff")[1][:40]:
+                rep.error(
+                    "B1",
+                    f"{rel}: kein expliziter [tool.ruff.lint] select — "
+                    "CI wird bei ruff-Updates ohne Codeänderung rot",
+                )
+        if (
+            re.search(r'ruff\s*>=\s*[\d.]+["\']', raw)
+            and "<" not in raw.split("ruff")[1][:40]
+        ):
             rep.warn("B1", f"{rel}: ruff ohne Obergrenze gepinnt")
 
 
@@ -357,8 +438,11 @@ def check_blind_assertions(repo: Path, rep: Report) -> None:
         raw = py.read_text(encoding="utf-8", errors="replace")
         for n, line in enumerate(raw.splitlines(), 1):
             if re.search(r"pytest\.raises\(\s*(Exception|BaseException)\s*[),]", line):
-                rep.error("B3", f"{py.relative_to(repo)}:{n}: blinde Assertion "
-                                "pytest.raises(Exception) — konkrete Exception verwenden")
+                rep.error(
+                    "B3",
+                    f"{py.relative_to(repo)}:{n}: blinde Assertion "
+                    "pytest.raises(Exception) — konkrete Exception verwenden",
+                )
 
 
 def registered_tool_names(tree: ast.Module) -> list[str]:
@@ -379,8 +463,11 @@ def registered_tool_names(tree: ast.Module) -> list[str]:
             name = node.name
             if call is not None:
                 for kw in call.keywords:
-                    if (kw.arg == "name" and isinstance(kw.value, ast.Constant)
-                            and isinstance(kw.value.value, str)):
+                    if (
+                        kw.arg == "name"
+                        and isinstance(kw.value, ast.Constant)
+                        and isinstance(kw.value.value, str)
+                    ):
                         name = kw.value.value
             names.append(name)
             break
@@ -419,9 +506,13 @@ def list_tool_names(repo: Path, rep: Report) -> None:
             continue
         registered.extend(registered_tool_names(tree))
     if unparsed:
-        rep.info("E1", f"Nicht parsebar, bei der Tool-Suche übersprungen: {sorted(unparsed)}")
+        rep.info(
+            "E1", f"Nicht parsebar, bei der Tool-Suche übersprungen: {sorted(unparsed)}"
+        )
     if registered:
-        rep.info("E1", f"Registrierte Tool-Namen ({len(registered)}): {sorted(registered)}")
+        rep.info(
+            "E1", f"Registrierte Tool-Namen ({len(registered)}): {sorted(registered)}"
+        )
         # Alle Sprachfassungen, nicht nur README.md. Seit die Repos zweisprachig
         # sind, wäre ein nur im deutschen README dokumentiertes Tool sonst als
         # undokumentiert gemeldet worden — ein Fehlalarm derselben Klasse wie das
@@ -432,7 +523,9 @@ def list_tool_names(repo: Path, rep: Report) -> None:
         }
         if texts:
             unique = set(registered)
-            missing = sorted(t for t in unique if not any(t in x for x in texts.values()))
+            missing = sorted(
+                t for t in unique if not any(t in x for x in texts.values())
+            )
             if missing:
                 rep.warn("E1", f"Tools nicht im README dokumentiert: {missing}")
             # Getrennt gemeldet: «nirgends dokumentiert» und «nur in einer
@@ -441,7 +534,9 @@ def list_tool_names(repo: Path, rep: Report) -> None:
             for name, text in texts.items():
                 gaps = sorted(t for t in unique - set(missing) if t not in text)
                 if gaps:
-                    rep.warn("E1", f"{name}: Tools fehlen in dieser Sprachfassung: {gaps}")
+                    rep.warn(
+                        "E1", f"{name}: Tools fehlen in dieser Sprachfassung: {gaps}"
+                    )
 
 
 # C8 — Versionsanker. Die Quelle ist die oberste Release-Überschrift;
@@ -451,7 +546,10 @@ RELEASE_HEADING_RE = re.compile(r"^## \[v?(?P<version>\d+\.\d+\.\d+)\]", re.MULT
 # und die `**Version:**`-Zeile in einem Status-Abschnitt.
 VERSION_ANCHORS = (
     (re.compile(r"badge/version-(\d+\.\d+\.\d+)-"), "Badge"),
-    (re.compile(r"^\*\*Version:\*\*\s+v?(\d+\.\d+\.\d+)", re.MULTILINE), "Version-Zeile"),
+    (
+        re.compile(r"^\*\*Version:\*\*\s+v?(\d+\.\d+\.\d+)", re.MULTILINE),
+        "Version-Zeile",
+    ),
 )
 META_VERSION_RE = re.compile(r"^version:\s*v?(\d+\.\d+\.\d+)\s*$", re.MULTILINE)
 
@@ -481,7 +579,9 @@ def check_version_anchors(repo: Path, rep: Report) -> None:
     changelog = repo / "CHANGELOG.md"
     if not changelog.is_file():
         return
-    m = RELEASE_HEADING_RE.search(changelog.read_text(encoding="utf-8", errors="replace"))
+    m = RELEASE_HEADING_RE.search(
+        changelog.read_text(encoding="utf-8", errors="replace")
+    )
     if m is None:
         return
     expected = m.group("version")
@@ -494,14 +594,18 @@ def check_version_anchors(repo: Path, rep: Report) -> None:
     meta = repo / ".github" / "repo-meta.yml"
     if meta.is_file():
         text = meta.read_text(encoding="utf-8", errors="replace")
-        found.extend((".github/repo-meta.yml", v) for v in META_VERSION_RE.findall(text))
+        found.extend(
+            (".github/repo-meta.yml", v) for v in META_VERSION_RE.findall(text)
+        )
 
     if not found:
         rep.info("C8", f"Kein Versionsanker gefunden — CHANGELOG nennt {expected}")
         return
     stale = sorted({f"{where} → {v}" for where, v in found if v != expected})
     if stale:
-        rep.warn("C8", f"Versionsangaben weichen vom CHANGELOG ({expected}) ab: {stale}")
+        rep.warn(
+            "C8", f"Versionsangaben weichen vom CHANGELOG ({expected}) ab: {stale}"
+        )
 
 
 def check_license_name(repo: Path, rep: Report) -> None:
@@ -516,14 +620,18 @@ def check_license_name(repo: Path, rep: Report) -> None:
         owner = m.group(1)
         for line in lic.read_text(encoding="utf-8", errors="replace").splitlines():
             if line.lower().startswith("copyright") and owner.lower() in line.lower():
-                rep.warn("C7", f"LICENSE nennt vermutlich den GitHub-Handle '{owner}' — "
-                               "bürgerlichen Namen verwenden")
+                rep.warn(
+                    "C7",
+                    f"LICENSE nennt vermutlich den GitHub-Handle '{owner}' — "
+                    "bürgerlichen Namen verwenden",
+                )
 
 
 def git(repo: Path, *args: str) -> str | None:
     try:
-        out = subprocess.run(["git", "-C", str(repo), *args],
-                             capture_output=True, text=True, timeout=10)
+        out = subprocess.run(
+            ["git", "-C", str(repo), *args], capture_output=True, text=True, timeout=10
+        )
         return out.stdout.strip() or None
     except (OSError, subprocess.SubprocessError):
         return None
@@ -536,8 +644,11 @@ def check_branch(repo: Path, rep: Report) -> None:
     if branch:
         rep.info("E5", f"Default-Branch: {branch}")
         if branch != "main":
-            rep.warn("E5", f"Default-Branch ist '{branch}', nicht 'main' — "
-                           "Push- und Workflow-Befehle anpassen")
+            rep.warn(
+                "E5",
+                f"Default-Branch ist '{branch}', nicht 'main' — "
+                "Push- und Workflow-Befehle anpassen",
+            )
 
 
 def main() -> int:

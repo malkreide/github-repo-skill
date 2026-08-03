@@ -18,6 +18,7 @@ Läuft mit pytest und ohne:
     python3 scripts/test_emoji.py
     pytest scripts/test_emoji.py
 """
+
 from __future__ import annotations
 
 import importlib.util
@@ -107,14 +108,20 @@ NORMALISE = [
 
 
 def test_typography_is_not_emoji():
-    bad = [f"{c!r} ({why}) wurde als Emoji gemeldet" for c, why in NOT_EMOJI
-           if vr.EMOJI_RE.search(c)]
+    bad = [
+        f"{c!r} ({why}) wurde als Emoji gemeldet"
+        for c, why in NOT_EMOJI
+        if vr.EMOJI_RE.search(c)
+    ]
     assert not bad, "Fehlalarm:\n  " + "\n  ".join(bad)
 
 
 def test_real_emoji_are_found():
-    bad = [f"{c!r} ({why}) wurde NICHT erkannt" for c, why in IS_EMOJI
-           if not vr.EMOJI_RE.search(c)]
+    bad = [
+        f"{c!r} ({why}) wurde NICHT erkannt"
+        for c, why in IS_EMOJI
+        if not vr.EMOJI_RE.search(c)
+    ]
     assert not bad, "übersehen:\n  " + "\n  ".join(bad)
 
 
@@ -132,9 +139,11 @@ def test_normalise_leaves_no_invisible_remains():
 
 def main() -> int:
     failed = 0
-    for fn in (test_typography_is_not_emoji,
-               test_real_emoji_are_found,
-               test_normalise_leaves_no_invisible_remains):
+    for fn in (
+        test_typography_is_not_emoji,
+        test_real_emoji_are_found,
+        test_normalise_leaves_no_invisible_remains,
+    ):
         try:
             fn()
             print(f"✓ {fn.__name__}")
@@ -142,7 +151,9 @@ def main() -> int:
             failed += 1
             print(f"✗ {fn.__name__}\n  {exc}")
     total = len(NOT_EMOJI) + len(IS_EMOJI) + len(NORMALISE)
-    print(f"\n{total} Fälle, {'alle grün' if not failed else f'{failed} Gruppe(n) rot'}")
+    print(
+        f"\n{total} Fälle, {'alle grün' if not failed else f'{failed} Gruppe(n) rot'}"
+    )
     return 1 if failed else 0
 
 

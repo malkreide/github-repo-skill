@@ -39,10 +39,14 @@ jobs:
         with:
           python-version: "3.11"
 
-      # B1: Version mit Obergrenze pinnen. Ohne Obergrenze zieht CI die
-      # jeweils neuste ruff-Version und wird ohne Codeänderung rot.
+      # B1: Version EXAKT pinnen, nicht nur mit Obergrenze. Für `ruff check`
+      # würde eine Obergrenze genügen, weil der Regelsatz in `select` steht.
+      # `ruff format --check` unten hat kein `select` — dort ist das Ergebnis
+      # selbst das Kriterium. Jede Version, die am Formatter etwas ändert,
+      # macht damit unberührten Code rot, gleichzeitig in jedem Repo, das
+      # diese Vorlage benutzt, zu einem Zeitpunkt, den niemand gewählt hat.
       - name: Install tooling
-        run: python -m pip install "ruff>=0.6,<0.7" pytest
+        run: python -m pip install "ruff==0.15.8" pytest
 
       # B2: Subprojekte erben die Wurzelkonfiguration NICHT. ruff im
       # Wurzelverzeichnis aufzurufen genügt nicht, wenn Unterverzeichnisse
@@ -53,6 +57,19 @@ jobs:
           for sub in $(find . -mindepth 2 -name pyproject.toml -not -path "./.venv/*"); do
             echo "→ Lint $(dirname "$sub")"
             (cd "$(dirname "$sub")" && ruff check .)
+          done
+
+      # Zweites, eigenständiges Gate: Ein grünes `ruff check` belegt kein
+      # grünes Format. Eigener Schritt, damit im Log steht, welches der beiden
+      # Gates ausgelöst hat. Je Subprojekt aus demselben Grund wie B2 — und
+      # weil die `line-length` des jeweiligen Verzeichnisses entscheidet,
+      # nicht die der Wurzel.
+      - name: Format gate
+        run: |
+          ruff format --check .
+          for sub in $(find . -mindepth 2 -name pyproject.toml -not -path "./.venv/*"); do
+            echo "→ Format $(dirname "$sub")"
+            (cd "$(dirname "$sub")" && ruff format --check .)
           done
 
       - name: Test

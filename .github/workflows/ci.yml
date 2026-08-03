@@ -29,16 +29,27 @@ jobs:
         with:
           python-version: "3.11"
 
-      # 8.1: Version mit Obergrenze pinnen. Ohne Obergrenze zieht CI die
-      # jeweils neuste ruff-Version und wird ohne Codeänderung rot.
+      # 8.1: EXAKT gepinnt, nicht nur mit Obergrenze. Für `ruff check` genügt
+      # die Obergrenze, weil der Regelsatz in ruff.toml steht. `ruff format`
+      # hat kein `select` — dort ist das Ergebnis selbst das Kriterium, und
+      # jede Version, die am Formatter etwas ändert, macht unberührten Code
+      # rot. Gemessen vor dem Umstellen: 0.6.9 und 0.15.8 formatieren diesen
+      # Code identisch, die Version zu heben war also folgenlos.
       - name: Install tooling
-        run: python -m pip install "ruff>=0.6,<0.7"
+        run: python -m pip install "ruff==0.15.8"
 
       # Regelsatz steht explizit in ruff.toml. Dieses Repo ist kein
       # Python-Paket und hat keine Subprojekte — die Schleife aus
       # assets/workflows/ci.yml entfällt hier bewusst.
       - name: Lint scripts
         run: ruff check scripts/
+
+      # Zweites, eigenstaendiges Gate. Ein gruenes `ruff check` belegt kein
+      # gruenes Format — dieser Fehlschluss hat in einem Schwester-Repo einen
+      # Push rot gemacht, der lokal geprueft schien. Eigener Schritt, damit im
+      # Log steht, welches der beiden Gates ausgeloest hat.
+      - name: Format gate
+        run: ruff format --check scripts/
 
       # Der Skill prüft sein eigenes Repo mit dem eigenen Validator.
       - name: Validate repository structure
