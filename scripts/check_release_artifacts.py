@@ -44,8 +44,7 @@ def ok(msg: str) -> None:
 def wheel_metadata(wheel: Path) -> tuple[dict, str]:
     """Liefert (Header, Description-Body) aus der METADATA des Wheels."""
     with zipfile.ZipFile(wheel) as zf:
-        name = next(n for n in zf.namelist()
-                    if n.endswith(".dist-info/METADATA"))
+        name = next(n for n in zf.namelist() if n.endswith(".dist-info/METADATA"))
         raw = zf.read(name).decode("utf-8", errors="replace")
     msg = message_from_string(raw)
     body = msg.get_payload() or ""
@@ -75,10 +74,12 @@ def main() -> int:
     # --- A1: Marker im publizierten README (= Wheel-METADATA) ----------------
     markers = MARKER_RE.findall(description)
     if not markers:
-        fail(f"A1: kein <!-- mcp-name: ... --> Marker in {wheel.name} (METADATA). "
-             "Die MCP-Registry kann die PyPI-Ownership nicht prüfen. "
-             "Marker in die von pyproject als `readme` deklarierte Datei aufnehmen "
-             "und neu bauen — nach dem Upload ist die Version unveränderlich.")
+        fail(
+            f"A1: kein <!-- mcp-name: ... --> Marker in {wheel.name} (METADATA). "
+            "Die MCP-Registry kann die PyPI-Ownership nicht prüfen. "
+            "Marker in die von pyproject als `readme` deklarierte Datei aufnehmen "
+            "und neu bauen — nach dem Upload ist die Version unveränderlich."
+        )
     elif len(markers) > 1:
         fail(f"A1: {len(markers)} Marker in METADATA, genau einer erwartet: {markers}")
     else:
@@ -96,9 +97,12 @@ def main() -> int:
         if isinstance(readme_decl, str) and markers:
             src = repo / readme_decl
             if src.exists() and not MARKER_RE.search(
-                    src.read_text(encoding="utf-8", errors="replace")):
-                fail(f"A1: Marker im Wheel, aber nicht in {readme_decl} — "
-                     "Quelle und Artefakt driften auseinander")
+                src.read_text(encoding="utf-8", errors="replace")
+            ):
+                fail(
+                    f"A1: Marker im Wheel, aber nicht in {readme_decl} — "
+                    "Quelle und Artefakt driften auseinander"
+                )
 
     if server_json.exists():
         sj = json.loads(server_json.read_text(encoding="utf-8"))
@@ -106,9 +110,11 @@ def main() -> int:
         # --- A2: description ≤ 100 Zeichen -----------------------------------
         desc = sj.get("description", "")
         if len(desc) > 100:
-            fail(f"A2: server.json description ist {len(desc)} Zeichen (max. 100). "
-                 "Die Registry antwortet mit 422 — und zwar erst NACH dem "
-                 "erfolgreichen PyPI-Upload.")
+            fail(
+                f"A2: server.json description ist {len(desc)} Zeichen (max. 100). "
+                "Die Registry antwortet mit 422 — und zwar erst NACH dem "
+                "erfolgreichen PyPI-Upload."
+            )
         else:
             ok(f"A2: server.json description {len(desc)}/100 Zeichen")
 
@@ -128,9 +134,11 @@ def main() -> int:
         tag_version = args.tag.lstrip("v")
         meta_version = headers.get("Version")
         if meta_version and tag_version != meta_version:
-            fail(f"A4: Tag {args.tag} ≠ gebaute Version {meta_version}. "
-                 "Ein Re-Run eines alten Tag-Laufs checkt den alten Commit aus. "
-                 "Neuen Tag setzen oder workflow_dispatch auf dem Default-Branch nutzen.")
+            fail(
+                f"A4: Tag {args.tag} ≠ gebaute Version {meta_version}. "
+                "Ein Re-Run eines alten Tag-Laufs checkt den alten Commit aus. "
+                "Neuen Tag setzen oder workflow_dispatch auf dem Default-Branch nutzen."
+            )
         else:
             ok(f"A4: Tag und gebaute Version stimmen überein ({meta_version})")
 

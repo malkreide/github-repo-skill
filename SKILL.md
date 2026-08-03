@@ -394,6 +394,31 @@ ignore = ["E501"]
 
 Und in der CI mit Obergrenze installieren: `pip install "ruff>=0.6,<0.7"`.
 
+**Sobald ein Formatgate dazukommt, reicht die Obergrenze nicht mehr.** Für
+`ruff check` ist sie richtig: Der Regelsatz steht in `select`, die Obergrenze
+hält den Major-Sprung ab, und mehr braucht es nicht. `ruff format` hat kein
+`select` — sein Ergebnis *ist* das Kriterium. Jede Version, die am Formatter
+etwas ändert, macht damit unberührten Code rot, gleichzeitig in jedem Repo, zu
+einem Zeitpunkt, den niemand gewählt hat. Wer ein Formatgate einführt, ohne
+exakt zu pinnen, tauscht eine bekannte Lücke gegen einen Zeitzünder.
+
+Deshalb: **`ruff==X.Y.Z` exakt, sobald `ruff format --check` in der CI steht.**
+
+```bash
+ruff check .                 # Regelsatz aus select
+ruff format --check .        # zweites, eigenständiges Gate
+```
+
+Beide Kommandos gehören auch in die lokale Routine. Ein grünes `ruff check` ist
+**kein** Beleg für ein grünes Formatgate — dieser Fehlschluss hat in einem
+Schwester-Repo einen Push rot gemacht, der lokal geprüft schien.
+
+Die zweite Hälfte gehört dazu: Die `line-length` gehört explizit in die
+Konfiguration, auch wenn sie dem Default entspricht. `ruff format` bricht eine
+Zeile um, sobald sie nicht mehr passt — eine Datei, die zwischen Repos kopiert
+wird, ist deshalb bei 88 mehrzeilig und bei 100 einzeilig. Steht der Wert
+nirgends, sieht der Bruch im Zielrepo nach einem Fehler am Skript aus.
+
 ### 8.2 Subprojekte erben nichts
 
 Ein Unterverzeichnis mit eigener `pyproject.toml` und eigenem
@@ -727,7 +752,9 @@ falsche Änderung oder einen Fehlalarm verhindert:
 
 **CI**
 - [ ] `[tool.ruff.lint] select` explizit, in **jedem** pyproject
-- [ ] ruff mit Obergrenze gepinnt
+- [ ] ruff gepinnt — Obergrenze genügt für `check`, **exakt** sobald ein Formatgate steht (8.1)
+- [ ] `line-length` explizit gesetzt, auch wenn sie dem Default entspricht (8.1)
+- [ ] `ruff format --check` als eigener Schritt — und lokal vor dem Push mitgefahren
 - [ ] Keine `pytest.raises(Exception)`
 
 **Release (MCP/PyPI)**
