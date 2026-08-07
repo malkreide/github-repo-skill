@@ -424,7 +424,20 @@ nirgends, sieht der Bruch im Zielrepo nach einem Fehler am Skript aus.
 Ein Unterverzeichnis mit eigener `pyproject.toml` und eigenem
 `[tool.ruff]`-Block ignoriert die Wurzelkonfiguration **vollständig**. Jedes
 Subprojekt braucht seinen eigenen `select`-Block. Bei Monorepos beim
-Scaffolding mitgenerieren; `assets/workflows/ci.yml` lintet Subprojekte separat.
+Scaffolding mitgenerieren.
+
+**Woraus das folgt — und woraus nicht.** Es folgt daraus, dass ein Wurzel-Lauf
+`ruff check .` das Subprojekt *übersieht*: ruff löst Konfiguration pro Datei
+hierarchisch auf und wendet auf jede Datei bereits die nächstgelegene
+`pyproject.toml` an. Gemessen mit 0.15.8 — der Wurzel-`select` gilt im
+Subprojekt nicht (deshalb dieser Abschnitt), aber die `line-length` des
+Subprojekts wird vom Wurzel-Lauf sehr wohl angewandt.
+
+`assets/workflows/ci.yml` lintet Subprojekte trotzdem separat, nur aus einem
+anderen Grund: ein `exclude` in der Wurzelkonfiguration, das das Subprojekt
+abdeckt, macht den Verzeichnislauf still — exit 0, obwohl dort Verstöße liegen.
+Ein `cd` ins Subprojekt findet sie. Die Begründung steht im Kommentar dieses
+Schritts; sie ist nicht diese Regel hier.
 
 ### 8.3 Keine blinden Assertions in Tests
 
