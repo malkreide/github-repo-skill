@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Ruff-Pin von 0.15.8 auf 0.16.1**, in der eigenen CI und in
+  `assets/workflows/ci.yml`. Portfolioweit gemessen: 32 Repos fahren bereits
+  0.16.1, neun standen auf 0.15.8 — die sechs Skill-Repos, der Auditor und drei
+  Server. Die Vorlagen-Repos hingen also hinter den Servern zurück, nicht
+  umgekehrt, und Regel 8.1 verlangt einen exakten Pin, den 32 Repos anders
+  beantworteten.
+
+  Gemessen vor dem Bump, wie es die Regel verlangt, die dieser Pin durchsetzt:
+  auf `scripts/` formatiert 0.16.1 identisch zu 0.15.8 und findet nichts Neues.
+
+  **Die eine Verhaltensänderung, die Zielrepos trifft:** seit 0.16.1 formatiert
+  `ruff format` auch Python-Blöcke in Markdown — bis 0.15.8 war das
+  `preview`-only und `.md` blieb unberührt (`ruff format --check SKILL.md`
+  meldete «Markdown formatting is experimental, enable preview mode»). Das
+  Format-Gate der Vorlage läuft über `.`, erfasst ab dieser Version also auch
+  README, `docs/` und CHANGELOG. Über das Portfolio gemessen war das der
+  *einzige* Unterschied: kein einziges `.py` formatiert sich anders, betroffen
+  waren ausschliesslich `.md` — bei `mcp-audit-skill` 82 Dateien.
+
+  Die Vorlage benennt das jetzt an der Pin-Zeile und nennt den Ausweg für
+  Zielrepos, die das nicht wollen: `extend-exclude = ["*.md"]`, **nicht**
+  `exclude` — letzteres ersetzt ruffs Vorgabeliste und holt `.venv/` und
+  `node_modules/` zurück ins Gate (gemessen an einem Baum mit je einer
+  fehlerhaften Datei darunter: ohne Eintrag 1 Datei geprüft, mit `exclude` 3,
+  mit `extend-exclude` wieder 1).
+
 ### Fixed
 
 - **Die Begründung der Subprojekt-Schleife war falsch — die Schleife nicht.**
