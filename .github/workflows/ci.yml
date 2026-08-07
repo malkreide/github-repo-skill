@@ -36,7 +36,7 @@ jobs:
       # rot. Gemessen vor dem Umstellen: 0.6.9 und 0.15.8 formatieren diesen
       # Code identisch, die Version zu heben war also folgenlos.
       - name: Install tooling
-        run: python -m pip install "ruff==0.15.8"
+        run: python -m pip install "ruff==0.16.1"
 
       # Regelsatz steht explizit in ruff.toml. Dieses Repo ist kein
       # Python-Paket und hat keine Subprojekte — die Schleife aus

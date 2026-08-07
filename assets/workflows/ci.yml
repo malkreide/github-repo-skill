@@ -45,8 +45,16 @@ jobs:
       # selbst das Kriterium. Jede Version, die am Formatter etwas ändert,
       # macht damit unberührten Code rot, gleichzeitig in jedem Repo, das
       # diese Vorlage benutzt, zu einem Zeitpunkt, den niemand gewählt hat.
+      #
+      # Seit 0.16.1 formatiert `ruff format` auch Python-Blöcke in Markdown; bis
+      # 0.15.8 war das `preview`-only, `.md` blieb unberührt. Das Format-Gate
+      # unten läuft über `.`, erfasst also ab dieser Version auch README, docs/
+      # und CHANGELOG. Das ist meist erwünscht — wo nicht, gehört
+      # `extend-exclude = ["*.md"]` in die ruff-Konfiguration des Zielrepos.
+      # NICHT `exclude`: das ersetzt ruffs Vorgabeliste und holt `.venv/` und
+      # `node_modules/` zurück ins Gate.
       - name: Install tooling
-        run: python -m pip install "ruff==0.15.8" pytest
+        run: python -m pip install "ruff==0.16.1" pytest
 
       # B2: Subprojekte erben die Wurzelkonfiguration NICHT — das stimmt, und es
       # ist der Grund, warum jedes Subprojekt seinen eigenen `select` braucht

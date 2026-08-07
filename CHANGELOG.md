@@ -7,6 +7,70 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Ruff-Pin von 0.15.8 auf 0.16.1**, in der eigenen CI und in
+  `assets/workflows/ci.yml`. Portfolioweit gemessen: 32 Repos fahren bereits
+  0.16.1, neun standen auf 0.15.8 — die sechs Skill-Repos, der Auditor und drei
+  Server. Die Vorlagen-Repos hingen also hinter den Servern zurück, nicht
+  umgekehrt, und Regel 8.1 verlangt einen exakten Pin, den 32 Repos anders
+  beantworteten.
+
+  Gemessen vor dem Bump, wie es die Regel verlangt, die dieser Pin durchsetzt:
+  auf `scripts/` formatiert 0.16.1 identisch zu 0.15.8 und findet nichts Neues.
+
+  **Die eine Verhaltensänderung, die Zielrepos trifft:** seit 0.16.1 formatiert
+  `ruff format` auch Python-Blöcke in Markdown — bis 0.15.8 war das
+  `preview`-only und `.md` blieb unberührt (`ruff format --check SKILL.md`
+  meldete «Markdown formatting is experimental, enable preview mode»). Das
+  Format-Gate der Vorlage läuft über `.`, erfasst ab dieser Version also auch
+  README, `docs/` und CHANGELOG. Über das Portfolio gemessen war das der
+  *einzige* Unterschied: kein einziges `.py` formatiert sich anders, betroffen
+  waren ausschliesslich `.md` — bei `mcp-audit-skill` 82 Dateien.
+
+  Die Vorlage benennt das jetzt an der Pin-Zeile und nennt den Ausweg für
+  Zielrepos, die das nicht wollen: `extend-exclude = ["*.md"]`, **nicht**
+  `exclude` — letzteres ersetzt ruffs Vorgabeliste und holt `.venv/` und
+  `node_modules/` zurück ins Gate (gemessen an einem Baum mit je einer
+  fehlerhaften Datei darunter: ohne Eintrag 1 Datei geprüft, mit `exclude` 3,
+  mit `extend-exclude` wieder 1).
+
+- **Regel 8.1 erweitert: die Obergrenze genügt nicht mehr, sobald ein
+  Formatgate steht.** Für `ruff check` ist sie richtig — der Regelsatz steht in
+  `select`, die Obergrenze hält den Major-Sprung ab. `ruff format` hat kein
+  `select`: dort *ist* das Ergebnis das Kriterium, und jede Version, die am
+  Formatter etwas ändert, macht unberührten Code rot, gleichzeitig in jedem
+  Repo, das die Vorlage benutzt. Deshalb `ruff==X.Y.Z` exakt, sobald
+  `ruff format --check` in der CI steht.
+
+  Dazu die zweite Hälfte: `line-length` gehört explizit in die Konfiguration,
+  auch wenn sie dem Default entspricht. Dieselbe Datei ist bei 88 mehrzeilig
+  und bei 100 einzeilig — steht der Wert nirgends, sieht der Bruch beim
+  Kopieren zwischen Repos nach einem Fehler am Skript aus.
+
+- **`ruff format --check` als eigener Schritt**, in der eigenen CI und in
+  `assets/workflows/ci.yml`. In der Vorlage je Subprojekt — die hier zuerst
+  gegebene Begründung (B2 und die `line-length` des Verzeichnisses) ist
+  nachgemessen falsch und oben unter *Fixed* korrigiert; die Schleife bleibt,
+  wegen eines Wurzel-`exclude`.
+
+  Belegt statt behauptet: Mit absichtlich falsch formatiertem Code meldet
+  `ruff check` weiterhin «All checks passed!», und nur das neue Gate schlägt
+  an. Erst das zeigt, dass der Schritt eine Lücke schliesst und nicht den
+  Linter dupliziert. Ein grünes `ruff check` ist kein Beleg für ein grünes
+  Format — dieser Fehlschluss hat in einem Schwester-Repo einen Push rot
+  gemacht, der lokal geprüft schien.
+
+- **Pin von `ruff>=0.6,<0.7` auf `ruff==0.15.8`.** Gemessen vor der Umstellung:
+  Beide Versionen bestehen `ruff check` und erzeugen auf diesem Code ein
+  **identisches** Format. Die Anhebung war also folgenlos und nicht mit der
+  Einführung des Gates verwoben.
+
+  Die vier Dateien unter `scripts/` sind einmalig umformatiert worden. Der
+  Eingriff ist mechanisch nachgewiesen: AST vor und nach der Umformatierung
+  identisch, die Semantik also unverändert.
+
+
 ### Fixed
 
 - **Die Begründung der Subprojekt-Schleife war falsch — die Schleife nicht.**
@@ -43,42 +107,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   bleibt, welche der beiden Annahmen sich bewegt, falls ruff sein Verhalten
   ändert.
 
-### Changed
-
-- **Regel 8.1 erweitert: die Obergrenze genügt nicht mehr, sobald ein
-  Formatgate steht.** Für `ruff check` ist sie richtig — der Regelsatz steht in
-  `select`, die Obergrenze hält den Major-Sprung ab. `ruff format` hat kein
-  `select`: dort *ist* das Ergebnis das Kriterium, und jede Version, die am
-  Formatter etwas ändert, macht unberührten Code rot, gleichzeitig in jedem
-  Repo, das die Vorlage benutzt. Deshalb `ruff==X.Y.Z` exakt, sobald
-  `ruff format --check` in der CI steht.
-
-  Dazu die zweite Hälfte: `line-length` gehört explizit in die Konfiguration,
-  auch wenn sie dem Default entspricht. Dieselbe Datei ist bei 88 mehrzeilig
-  und bei 100 einzeilig — steht der Wert nirgends, sieht der Bruch beim
-  Kopieren zwischen Repos nach einem Fehler am Skript aus.
-
-- **`ruff format --check` als eigener Schritt**, in der eigenen CI und in
-  `assets/workflows/ci.yml`. In der Vorlage je Subprojekt — die hier zuerst
-  gegebene Begründung (B2 und die `line-length` des Verzeichnisses) ist
-  nachgemessen falsch und oben unter *Fixed* korrigiert; die Schleife bleibt,
-  wegen eines Wurzel-`exclude`.
-
-  Belegt statt behauptet: Mit absichtlich falsch formatiertem Code meldet
-  `ruff check` weiterhin «All checks passed!», und nur das neue Gate schlägt
-  an. Erst das zeigt, dass der Schritt eine Lücke schliesst und nicht den
-  Linter dupliziert. Ein grünes `ruff check` ist kein Beleg für ein grünes
-  Format — dieser Fehlschluss hat in einem Schwester-Repo einen Push rot
-  gemacht, der lokal geprüft schien.
-
-- **Pin von `ruff>=0.6,<0.7` auf `ruff==0.15.8`.** Gemessen vor der Umstellung:
-  Beide Versionen bestehen `ruff check` und erzeugen auf diesem Code ein
-  **identisches** Format. Die Anhebung war also folgenlos und nicht mit der
-  Einführung des Gates verwoben.
-
-  Die vier Dateien unter `scripts/` sind einmalig umformatiert worden. Der
-  Eingriff ist mechanisch nachgewiesen: AST vor und nach der Umformatierung
-  identisch, die Semantik also unverändert.
 
 ### Added
 
