@@ -7,6 +7,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Die Begründung der Subprojekt-Schleife war falsch — die Schleife nicht.**
+  `assets/workflows/ci.yml` begründete sie mit B2 («Subprojekte erben die
+  Wurzelkonfiguration NICHT») und mit der `line-length` des jeweiligen
+  Verzeichnisses. Nachgemessen mit ruff 0.15.8, und beides trägt nicht: ruff
+  löst Konfiguration **pro Datei hierarchisch** auf, ein `ruff check .` an der
+  Wurzel wendet auf jede Datei bereits die nächstgelegene `pyproject.toml` an.
+  Es *implementiert* die Nicht-Vererbung, statt an ihr zu scheitern.
+
+  | Aufbau: Wurzel 88 / `select=["F","I"]`, Subprojekt 50 / `select=["F"]` | Wurzel-Lauf `.` | `cd` ins Subprojekt |
+  |---|---|---|
+  | unsortierte Importe im Subprojekt | still (Wurzel-`select` gilt dort nicht) | – |
+  | 52-Zeichen-Zeile im Subprojekt | **rot, umbrochen auf 50** | rot |
+  | Wurzel-`exclude` deckt das Subprojekt | **grün — übersieht es** | rot |
+
+  Die erste Zeile bestätigt Regel 8.2: der Wurzel-`select` gilt im Subprojekt
+  nicht, jedes Subprojekt braucht seinen eigenen — daran ändert sich nichts,
+  und `scripts/validate_repo.py` prüft das weiterhin richtig. Die zweite Zeile
+  widerlegt die Begründung: die `line-length` des Verzeichnisses entscheidet,
+  aber das tut sie im Wurzel-Lauf schon.
+
+  Bleibt die dritte: ein `exclude` in der Wurzelkonfiguration, das das
+  Subprojekt abdeckt, macht den Verzeichnislauf still — exit 0, obwohl dort
+  Verstöße liegen. Kontrollgruppe ohne `exclude`: derselbe Lauf wird rot. Das
+  ist die eine gemessene Lücke, die die Schleife schliesst, und jetzt steht sie
+  auch als deren Grund im Kommentar.
+
+  Aufgefallen im Schwester-Repo `mcp-continuous-auditor`, das die Schleife
+  übernehmen sollte und vorher nachgemessen hat
+  ([#82](https://github.com/malkreide/mcp-continuous-auditor/pull/82)). Dort
+  liegt die Messung als Test statt als Kommentar (`tests/test_format_gate.py`),
+  das negative Ergebnis ausdrücklich als eigener Testfall — damit sichtbar
+  bleibt, welche der beiden Annahmen sich bewegt, falls ruff sein Verhalten
+  ändert.
+
 ### Changed
 
 - **Regel 8.1 erweitert: die Obergrenze genügt nicht mehr, sobald ein
@@ -23,8 +59,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Kopieren zwischen Repos nach einem Fehler am Skript aus.
 
 - **`ruff format --check` als eigener Schritt**, in der eigenen CI und in
-  `assets/workflows/ci.yml`. In der Vorlage je Subprojekt, aus demselben Grund
-  wie B2 und weil die `line-length` des jeweiligen Verzeichnisses entscheidet.
+  `assets/workflows/ci.yml`. In der Vorlage je Subprojekt — die hier zuerst
+  gegebene Begründung (B2 und die `line-length` des Verzeichnisses) ist
+  nachgemessen falsch und oben unter *Fixed* korrigiert; die Schleife bleibt,
+  wegen eines Wurzel-`exclude`.
 
   Belegt statt behauptet: Mit absichtlich falsch formatiertem Code meldet
   `ruff check` weiterhin «All checks passed!», und nur das neue Gate schlägt

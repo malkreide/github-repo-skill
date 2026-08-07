@@ -48,9 +48,32 @@ jobs:
       - name: Install tooling
         run: python -m pip install "ruff==0.15.8" pytest
 
-      # B2: Subprojekte erben die Wurzelkonfiguration NICHT. ruff im
-      # Wurzelverzeichnis aufzurufen genügt nicht, wenn Unterverzeichnisse
-      # eigene pyproject.toml mit eigenem [tool.ruff]-Block haben.
+      # B2: Subprojekte erben die Wurzelkonfiguration NICHT — das stimmt, und es
+      # ist der Grund, warum jedes Subprojekt seinen eigenen `select` braucht
+      # (§8.2). Es ist aber NICHT der Grund für diese Schleife. Die Begründung,
+      # die hier stand, war gemessen falsch:
+      #
+      # ruff löst Konfiguration pro Datei hierarchisch auf. Ein `ruff check .`
+      # an der Wurzel wendet auf jede Datei bereits die nächstgelegene
+      # pyproject.toml an — es implementiert die Nicht-Vererbung, statt an ihr
+      # zu scheitern. Gemessen mit 0.15.8; Wurzel `select = ["F","I"]`,
+      # Subprojekt `select = ["F"]` und `line-length = 50`:
+      #
+      #   * unsortierte Importe im Subprojekt: vom Wurzel-Lauf NICHT gemeldet
+      #     (der Wurzel-`select` gilt dort nicht — Nicht-Vererbung bestätigt);
+      #   * eine 52-Zeichen-Zeile im Subprojekt: vom Wurzel-Lauf SEHR WOHL
+      #     gemeldet und auf 50 umbrochen — also mit der `line-length` des
+      #     Subprojekts, nicht der der Wurzel.
+      #
+      # Eine mit abweichenden Regelsätzen oder Breiten begründete Schleife
+      # fängt demnach nichts.
+      #
+      # Was sie fängt: ein `exclude` in der Wurzelkonfiguration, das das
+      # Subprojekt abdeckt. Der Verzeichnislauf überspringt es dann
+      # stillschweigend — exit 0, obwohl im Subprojekt Verstöße liegen —, der
+      # `cd` unten findet sie. Kontrollgruppe ohne `exclude`: der Wurzel-Lauf
+      # wird rot. Das ist die eine gemessene Lücke, und deshalb bleibt die
+      # Schleife stehen.
       - name: Lint
         run: |
           ruff check .
@@ -61,9 +84,9 @@ jobs:
 
       # Zweites, eigenständiges Gate: Ein grünes `ruff check` belegt kein
       # grünes Format. Eigener Schritt, damit im Log steht, welches der beiden
-      # Gates ausgelöst hat. Je Subprojekt aus demselben Grund wie B2 — und
-      # weil die `line-length` des jeweiligen Verzeichnisses entscheidet,
-      # nicht die der Wurzel.
+      # Gates ausgelöst hat. Die Schleife je Subprojekt aus dem Grund, der oben
+      # gemessen ist — dem `exclude`, nicht der `line-length`: die entscheidet
+      # zwar je Verzeichnis, aber das tut sie im Wurzel-Lauf schon.
       - name: Format gate
         run: |
           ruff format --check .
