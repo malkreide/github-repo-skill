@@ -47,6 +47,18 @@ a review pass across 43 repositories. None are precautionary.
 
 ## Installation
 
+### Claude Desktop and claude.ai — upload the packaged skill
+
+[**github-repo.skill**](github-repo.skill) is the ready-made package. Download it
+(on the file page: *Download raw file*), then in Claude Desktop or on claude.ai go
+to **Settings → Capabilities → Skills → Upload skill** and select the file.
+
+It is a ZIP archive containing `SKILL.md` plus everything the skill reads at
+runtime — `references/`, `scripts/`, and `assets/`. The `.skill` extension is what
+the upload dialog expects; do not rename or unpack it.
+
+### Claude Code — use the repository directly
+
 ```bash
 # Clone this repository
 git clone https://github.com/malkreide/github-repo-skill.git
@@ -54,6 +66,20 @@ git clone https://github.com/malkreide/github-repo-skill.git
 # Copy the whole bundle — the skill reads assets/, references/, and scripts/
 cp -r github-repo-skill /path/to/your/skills/github-repo
 ```
+
+### Rebuilding the package
+
+The archive is checked in, so a change to `SKILL.md` or to any bundled file needs
+a rebuild — otherwise the download lags behind the repository. CI enforces this.
+
+```bash
+./scripts/build_skill.sh        # writes github-repo.skill from skill-manifest.txt
+python3 scripts/validate_skill.py
+```
+
+The build is reproducible: identical sources always produce a byte-identical
+archive. `skill-manifest.txt` is the single source of truth for what goes into the
+package — add or rename files there, nowhere else.
 
 ## Usage / Quickstart
 
@@ -79,6 +105,8 @@ python3 scripts/validate_repo.py /path/to/repo
 ```
 github-repo-skill/
 ├── SKILL.md                          ← The skill (main file)
+├── github-repo.skill                 ← Packaged skill, upload this to Claude
+├── skill-manifest.txt                ← What goes into the package
 ├── assets/
 │   ├── LICENSE-MIT.txt
 │   ├── gitignore/                    ← python, node, raspberry-pi, claude-skill
@@ -90,7 +118,9 @@ github-repo-skill/
 │   └── repo-governance.md · .en.md   ← rulesets and IaC across many repos
 ├── scripts/
 │   ├── validate_repo.py              ← structure and documentation check
-│   └── check_release_artifacts.py    ← release gate
+│   ├── check_release_artifacts.py    ← release gate
+│   ├── build_skill.sh                ← builds github-repo.skill
+│   └── validate_skill.py             ← manifest, frontmatter, archive is current
 ├── .github/repo-meta.yml             ← this repo's own intake result
 ├── README.md · README.de.md
 ├── SECURITY.md · CONTRIBUTING.md

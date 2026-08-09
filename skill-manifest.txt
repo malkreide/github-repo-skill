@@ -1,0 +1,39 @@
+# Paketmanifest für github-repo.skill
+#
+# Einzige Quelle der Wahrheit für den Aufbau des .skill-Archivs.
+# Gelesen von scripts/build_skill.sh und scripts/validate_skill.py.
+#
+# Format:  <Zielpfad im Paket>=<Quellpfad im Repository>
+# Der Zielpfad ist relativ zum Verzeichnis github-repo/ im Archiv.
+#
+# Dieses Repo ist bereits skill-förmig aufgebaut, das Mapping ist deshalb 1:1.
+# Genau das ist die Bedingung dafür, dass die Pfade, die SKILL.md nennt
+# (`scripts/validate_repo.py`, `references/review-rules.md`, `assets/...`),
+# im Paket unverändert auflösen. Wer hier umbenennt, bricht SKILL.md.
+#
+# Nicht im Paket: README, CHANGELOG, CONTRIBUTING, SECURITY, LICENSE,
+# .github/repo-meta.yml und die Build-Skripte selbst. Das sind Artefakte des
+# Repositorys, nicht Material, das Claude beim Anwenden des Skills liest.
+
+SKILL.md=SKILL.md
+
+references/mcp-publishing.md=references/mcp-publishing.md
+references/review-rules.md=references/review-rules.md
+references/repo-governance.md=references/repo-governance.md
+references/repo-governance.en.md=references/repo-governance.en.md
+
+scripts/validate_repo.py=scripts/validate_repo.py
+scripts/check_release_artifacts.py=scripts/check_release_artifacts.py
+scripts/test_c1.py=scripts/test_c1.py
+scripts/test_emoji.py=scripts/test_emoji.py
+
+assets/LICENSE-MIT.txt=assets/LICENSE-MIT.txt
+assets/gitignore/python.gitignore=assets/gitignore/python.gitignore
+assets/gitignore/node.gitignore=assets/gitignore/node.gitignore
+assets/gitignore/raspberry-pi.gitignore=assets/gitignore/raspberry-pi.gitignore
+assets/gitignore/claude-skill.gitignore=assets/gitignore/claude-skill.gitignore
+assets/templates/README.md=assets/templates/README.md
+assets/templates/README.de.md=assets/templates/README.de.md
+assets/workflows/ci.yml=assets/workflows/ci.yml
+assets/workflows/publish.yml=assets/workflows/publish.yml
+assets/workflows/dependabot.yml=assets/workflows/dependabot.yml

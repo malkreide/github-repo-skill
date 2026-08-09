@@ -19,3 +19,10 @@ LICENSE     text eol=lf
 # Auch sich selbst: sonst bleibt genau die Datei ohne Regel, die die Regeln
 # aufstellt. Folgenlos für git, aber es fällt beim nächsten Durchgang auf.
 .gitattributes text eol=lf
+
+# github-repo.skill ist ein ZIP-Archiv und wird im Repo mitgeliefert, damit es
+# sich ohne Build herunterladen und in Claude Desktop hochladen laesst. git
+# erkennt es zwar von selbst als binaer, aber die Regel steht hier explizit:
+# eine einzige Zeilenende-Normalisierung macht das Archiv unlesbar, und der
+# Schaden faellt erst beim Upload auf — nicht beim Commit.
+*.skill binary
