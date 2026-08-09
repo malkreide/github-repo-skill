@@ -24,3 +24,9 @@ __pycache__/
 # Nur im Repo-Wurzelverzeichnis, damit eine bewusst gepflegte
 # `docs/release-notes-*.md` davon unberuehrt bleibt.
 /release-notes-*.md
+
+# Zwischenverzeichnis von scripts/build_skill.sh. Das Skript raeumt es selbst
+# wieder ab; bricht der Build vorher ab, bleibt es liegen und steht sonst im
+# naechsten `git add`. Das Ergebnis — github-repo.skill — ist dagegen bewusst
+# eingecheckt und darf hier nicht landen.
+/build/

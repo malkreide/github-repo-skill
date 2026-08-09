@@ -7,6 +7,52 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`github-repo.skill` — das Repo liefert jetzt ein installierbares Paket.**
+  Bisher liess sich der Skill nur benutzen, indem man das Repository klonte und
+  in ein Skills-Verzeichnis kopierte. Der Upload-Dialog von Claude Desktop und
+  claude.ai erwartet aber eine einzelne Archivdatei, und ein heruntergeladenes
+  Repo-ZIP ist keine: es trägt den Ordner `github-repo-skill-main/` an der
+  Wurzel und README, CHANGELOG und CI mit sich. Das Paket enthält `SKILL.md`
+  und ausschliesslich das, was der Skill zur Laufzeit liest — `references/`,
+  `scripts/`, `assets/`, 19 Dateien.
+
+- **`skill-manifest.txt`** als einzige Quelle der Wahrheit für den Paketinhalt.
+  Das Mapping ist 1:1, und das ist eine Bedingung, keine Bequemlichkeit: SKILL.md
+  nennt seine Begleitdateien als `scripts/validate_repo.py` oder
+  `references/review-rules.md`, diese Pfade müssen im Paket unverändert
+  auflösen. Wer beim Packen umbenennt, bricht SKILL.md, ohne dass im Repository
+  etwas kaputt aussieht.
+
+- **`scripts/build_skill.sh`** erzeugt das Archiv reproduzierbar — fester
+  Zeitstempel je Eintrag, `-X`, sortierte Reihenfolge. Gleiche Quellen ergeben
+  dasselbe Archiv; nur dadurch ist ein eingechecktes Binärartefakt im Diff
+  überhaupt beurteilbar und in der CI prüfbar.
+
+- **`scripts/validate_skill.py`** prüft das Repo als *Paket*, nicht als Repo:
+  Manifest wohlgeformt und Quellen vorhanden (P1), Frontmatter mit `name` und
+  `description` samt 1024-Zeichen-Limit (P2 — die description dieses Skills
+  liegt bei 1001, der Upload wird bei Überschreitung abgewiesen und nicht
+  gekürzt), jeder von SKILL.md genannte Pfad im Manifest (P3), das eingecheckte
+  Archiv inhaltlich deckungsgleich mit den Quellen (P4), relative Links auch im
+  Paket-Layout auflösend (P5).
+
+  P4 ist der eigentliche Zweck: ein eingechecktes Artefakt veraltet still. Die
+  CI führt den Check deshalb **vor** dem Build aus — danach verglichen wäre das
+  Archiv gegen die Quellen geprüft, aus denen es soeben entstand, und immer
+  grün. Der Build läuft im zweiten Schritt trotzdem, sonst wäre er der einzige
+  Code im Repo, den nie jemand ausführt.
+
+  Kein Byte-Vergleich in der CI: das Archiv ist zwar reproduzierbar, aber eine
+  andere `zip`-Version auf dem Runner machte den Lauf ohne Codeänderung rot —
+  genau die Fehlerklasse, gegen die Regel 8.1 in diesem Skill steht.
+
+- **`*.skill binary` in `.gitattributes`.** git erkennt das Archiv von selbst
+  als binär; die Regel steht trotzdem da, weil dieses Repo für alle Textformate
+  `eol=lf` erzwingt und eine einzige Zeilenende-Normalisierung das Archiv
+  unlesbar machte — der Schaden fiele erst beim Upload auf, nicht beim Commit.
+
 ### Changed
 
 - **Ruff-Pin von 0.15.8 auf 0.16.1**, in der eigenen CI und in

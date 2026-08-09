@@ -52,6 +52,19 @@ einem Prüfdurchlauf über 43 Repositories. Keine davon ist vorsorglich.
 
 ## Installation
 
+### Claude Desktop und claude.ai — fertiges Paket hochladen
+
+[**github-repo.skill**](github-repo.skill) ist das fertige Paket. Datei
+herunterladen (auf der Dateiseite: *Download raw file*), dann in Claude Desktop
+oder auf claude.ai unter **Einstellungen → Capabilities → Skills → Skill
+hochladen** auswählen.
+
+Es ist ein ZIP-Archiv mit `SKILL.md` und allem, was der Skill zur Laufzeit liest —
+`references/`, `scripts/` und `assets/`. Die Endung `.skill` erwartet der
+Upload-Dialog; die Datei also weder umbenennen noch entpacken.
+
+### Claude Code — Repository direkt verwenden
+
 ```bash
 # Repository klonen
 git clone https://github.com/malkreide/github-repo-skill.git
@@ -59,6 +72,21 @@ git clone https://github.com/malkreide/github-repo-skill.git
 # Ganzes Bundle kopieren — der Skill liest assets/, references/ und scripts/
 cp -r github-repo-skill /pfad/zu/deinen/skills/github-repo
 ```
+
+### Paket neu bauen
+
+Das Archiv ist eingecheckt. Jede Änderung an `SKILL.md` oder an einer gepackten
+Datei braucht deshalb einen Neubau — sonst hinkt der Download dem Repository
+hinterher. Die CI erzwingt das.
+
+```bash
+./scripts/build_skill.sh        # erzeugt github-repo.skill aus skill-manifest.txt
+python3 scripts/validate_skill.py
+```
+
+Der Build ist reproduzierbar: gleiche Quellen ergeben immer ein bit-identisches
+Archiv. `skill-manifest.txt` ist die einzige Quelle der Wahrheit für den
+Paketinhalt — Dateien werden dort hinzugefügt oder umbenannt, nirgends sonst.
 
 ## Verwendung
 
@@ -84,6 +112,8 @@ python3 scripts/validate_repo.py /pfad/zum/repo
 ```
 github-repo-skill/
 ├── SKILL.md                          ← Der Skill (Hauptdatei)
+├── github-repo.skill                 ← Fertiges Paket für den Upload zu Claude
+├── skill-manifest.txt                ← Was ins Paket gehört
 ├── assets/
 │   ├── LICENSE-MIT.txt
 │   ├── gitignore/                    ← python, node, raspberry-pi, claude-skill
@@ -95,7 +125,9 @@ github-repo-skill/
 │   └── repo-governance.md · .en.md   ← Rulesets und IaC über viele Repos
 ├── scripts/
 │   ├── validate_repo.py              ← Struktur- und Dokumentationsprüfung
-│   └── check_release_artifacts.py    ← Release-Gate
+│   ├── check_release_artifacts.py    ← Release-Gate
+│   ├── build_skill.sh                ← baut github-repo.skill
+│   └── validate_skill.py             ← Manifest, Frontmatter, Archiv aktuell
 ├── .github/repo-meta.yml             ← Intake-Ergebnis dieses Repos
 ├── README.md · README.de.md
 ├── SECURITY.md · CONTRIBUTING.md

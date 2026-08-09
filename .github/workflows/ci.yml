@@ -55,6 +55,22 @@ jobs:
       - name: Validate repository structure
         run: python scripts/validate_repo.py .
 
+      # Zuerst gegen das EINGECHECKTE Archiv, und zwar vor dem Build — genau
+      # das ist die Prüfung. Ein Lauf nach dem Build vergliche das Archiv mit
+      # den Quellen, aus denen es soeben entstanden ist, und wäre immer grün.
+      - name: Skill package matches the sources
+        run: python scripts/validate_skill.py
+
+      # Erst danach der Build selbst. Er wird sonst nirgends ausgeführt und
+      # könnte unbemerkt kaputtgehen; die zweite Validierung belegt, dass sein
+      # Ergebnis dieselben Prüfungen besteht. Byte-Vergleich bewusst nicht:
+      # das Archiv ist reproduzierbar, aber eine andere `zip`-Version auf dem
+      # Runner würde die CI ohne Codeänderung rot machen — Regel 8.1 in grün.
+      - name: Build script still produces a valid package
+        run: |
+          ./scripts/build_skill.sh
+          python scripts/validate_skill.py
+
       # C8 im Validator meldet abweichende Versionsanker als WARN — portfolioweit
       # richtig, denn eine veraltete Angabe ist ein Doku-Mangel und kein Baufehler.
       # Für dieses Repo reicht das nicht: Es ist die Quelle der Regel, und beim
