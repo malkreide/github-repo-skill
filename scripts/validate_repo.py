@@ -9,8 +9,12 @@ deutsche Synonyme) dürfen nicht "aufgeräumt" werden.
 Aufruf:
     python3 validate_repo.py [REPO_PFAD]
     python3 validate_repo.py --json [REPO_PFAD]
+    python3 validate_repo.py --fail-on=C8[,REGEL...] [REPO_PFAD]
 
 Exit-Code: 0 = keine ERROR-Findings, 1 = mindestens ein ERROR.
+`--fail-on` stuft WARN der genannten Regeln für diesen Lauf zu ERROR hoch —
+für ein Repo, das eine Regel strenger nimmt als das Portfolio. Das ersetzt
+den Heredoc, der dafür den JSON-Bericht ein zweites Mal las (SKILL.md 8.7).
 """
 
 from __future__ import annotations
@@ -432,6 +436,111 @@ def check_ruff_config(repo: Path, rep: Report) -> None:
             rep.warn("B1", f"{rel}: ruff ohne Obergrenze gepinnt")
 
 
+MCP_SPEC_TARGET = "2026-07-28"
+RUFF_EXACT_RE = re.compile(r"ruff==\d+(?:\.\d+)*")
+
+
+def repo_meta_field(repo: Path, key: str) -> str | None:
+    """Wert eines Top-Level-Felds aus .github/repo-meta.yml — ohne YAML-Parser.
+
+    Der Validator bleibt stdlib-only. Gelesen wird nur `key: wert` am
+    Zeilenanfang, Kommentar und Anführungszeichen abgestreift.
+    """
+    meta = repo / ".github" / "repo-meta.yml"
+    if not meta.exists():
+        return None
+    raw = meta.read_text(encoding="utf-8", errors="replace")
+    m = re.search(rf"^{re.escape(key)}:[ \t]*([^#\n]*)", raw, re.MULTILINE)
+    if not m:
+        return None
+    return m.group(1).strip().strip("\"'") or None
+
+
+def check_mcp_spec(repo: Path, rep: Report) -> None:
+    """A5 — MCP-Server zielen auf Spec 2026-07-28 (references/mcp-spec.md).
+
+    Geprüft wird die Deklaration im Intake, nicht der Draht: die
+    Protokollversion gehört dem SDK, der Nachweis läuft über server/discover
+    (mcp-spec.md, S4). Ein fehlendes Feld ist deshalb WARN — nicht gemessen
+    ist nicht falsch —, ein anderer Wert ERROR.
+    """
+    is_mcp = (repo / "server.json").exists() or (
+        repo_meta_field(repo, "project_type") == "mcp-server"
+    )
+    if not is_mcp:
+        return
+    declared = repo_meta_field(repo, "mcp_spec_version")
+    if declared is None:
+        rep.warn(
+            "A5",
+            "MCP-Server ohne mcp_spec_version in .github/repo-meta.yml — "
+            f"Zielstand ist {MCP_SPEC_TARGET} (references/mcp-spec.md)",
+        )
+    elif declared != MCP_SPEC_TARGET:
+        rep.error(
+            "A5",
+            f"mcp_spec_version ist {declared}, Zielstand ist {MCP_SPEC_TARGET} — "
+            "Migration offen (references/mcp-spec.md)",
+        )
+    else:
+        rep.info(
+            "A5",
+            f"mcp_spec_version: {declared} (deklariert — Nachweis am Draht: "
+            "mcp-spec.md S4)",
+        )
+
+
+def check_ruff_pin(repo: Path, rep: Report) -> None:
+    """B1 — ein Formatgate braucht einen exakten Pin, und zwar an einer Stelle.
+
+    Die Quelle ist requirements-lint.txt (SKILL.md 8.1). Ein Literal im
+    Workflow ist eine zweite Stelle und damit eine zweite Driftgelegenheit.
+    """
+    wf_dir = repo / ".github" / "workflows"
+    workflows = sorted(wf_dir.glob("*.y*ml")) if wf_dir.is_dir() else []
+    texts = {w: w.read_text(encoding="utf-8", errors="replace") for w in workflows}
+    if not any("ruff format --check" in t for t in texts.values()):
+        return
+
+    req = repo / "requirements-lint.txt"
+    req_pin = None
+    if req.exists():
+        m = RUFF_EXACT_RE.search(req.read_text(encoding="utf-8", errors="replace"))
+        req_pin = m.group(0) if m else None
+
+    literals = [
+        (w.relative_to(repo), m.group(0))
+        for w, t in texts.items()
+        for m in RUFF_EXACT_RE.finditer(t)
+    ]
+    for rel, pin in literals:
+        rep.warn(
+            "B1",
+            f"{rel}: {pin} steht im Workflow — Pin gehört nach "
+            "requirements-lint.txt, der Workflow liest von dort (8.1)",
+        )
+    if req_pin:
+        rep.info("B1", f"ruff-Pin aus requirements-lint.txt: {req_pin}")
+        return
+    # Bestehende Repos pinnen oft im dev-Extra (uv sync) — das ist ein exakter
+    # Pin an einer Stelle und kein Fehler, nur nicht die Vorlagen-Form.
+    pyproject = repo / "pyproject.toml"
+    elsewhere = None
+    if pyproject.exists():
+        m = RUFF_EXACT_RE.search(
+            pyproject.read_text(encoding="utf-8", errors="replace")
+        )
+        elsewhere = f"pyproject.toml ({m.group(0)})" if m else None
+    if elsewhere:
+        rep.info("B1", f"ruff exakt gepinnt in {elsewhere}")
+    elif not literals:
+        rep.error(
+            "B1",
+            "Formatgate (ruff format --check) ohne exakten ruff-Pin — "
+            "requirements-lint.txt mit ruff==X.Y.Z anlegen (8.1)",
+        )
+
+
 def check_blind_assertions(repo: Path, rep: Report) -> None:
     """B3 — pytest.raises(Exception) besteht auch bei einem Tippfehler."""
     for py in sorted(repo.rglob("test_*.py")) + sorted(repo.rglob("*_test.py")):
@@ -654,6 +763,13 @@ def check_branch(repo: Path, rep: Report) -> None:
 def main() -> int:
     args = [a for a in sys.argv[1:] if not a.startswith("--")]
     as_json = "--json" in sys.argv
+    fail_on = {
+        rule.strip()
+        for a in sys.argv[1:]
+        if a.startswith("--fail-on=")
+        for rule in a.split("=", 1)[1].split(",")
+        if rule.strip()
+    }
     repo = Path(args[0] if args else ".").resolve()
     rep = Report()
 
@@ -662,12 +778,19 @@ def main() -> int:
     check_demo_parity(repo, rep)
     check_mcp_marker(repo, rep)
     check_server_json(repo, rep)
+    check_mcp_spec(repo, rep)
     check_ruff_config(repo, rep)
+    check_ruff_pin(repo, rep)
     check_blind_assertions(repo, rep)
     list_tool_names(repo, rep)
     check_license_name(repo, rep)
     check_version_anchors(repo, rep)
     check_branch(repo, rep)
+
+    for item in rep.items:
+        if item["level"] == "WARN" and item["rule"] in fail_on:
+            item["level"] = "ERROR"
+            item["message"] += " (--fail-on)"
 
     if as_json:
         print(json.dumps(rep.items, ensure_ascii=False, indent=2))

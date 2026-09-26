@@ -155,6 +155,24 @@ unsichtbarer Rest im Titel stehen und der exakte Vergleich (E3) scheitert an
 einem Zeichen, das man nicht sieht. `scripts/test_emoji.py` hält alle drei
 Seiten fest — Fehlalarm, Übersehen und Strip-Hygiene.
 
+### E8 — Links auf fremde Inhalte zeigen auf einen Tag, nicht auf `main`
+
+Ein Link, der etwas über den Inhalt eines anderen Repos **behauptet** («seine
+Regel 5», «Schritt 1.4»), kann auf `main` aufhören zu stimmen, ohne dass sich
+im eigenen Repo ein Byte ändert — und ohne dass es jemand merkt. Auf einen Tag
+gepinnt kann er nur veralten, und das ist sichtbar.
+
+Gemessen im `mcp-continuous-auditor`: Drei Skill-Repos wurden in
+`mcp-audit-skill` zusammengeführt und archiviert. Die Links im README lösten
+weiter auf und sahen intakt aus — sie zeigten auf einen Stand, den niemand
+mehr pflegt. Das ist die schlimmere Hälfte eines toten Links: ein 404 ist
+wenigstens lesbar.
+
+Umgekehrt gilt: Ein Pin auf einen Tag braucht jemanden, der ihn hebt. Wer auf
+Tags pinnt, lässt einen wöchentlichen Lauf prüfen, ob der Tag noch der neueste
+Release ist (Muster: `audit-pin-drift.yml` im Auditor) — sonst ist der Pin
+korrekt und trotzdem zwei Versionen alt.
+
 ---
 
 ## F2 — 403 beim Push in ein archiviertes Repo
@@ -195,8 +213,30 @@ Stand messen, bevor der Lauf beginnt:
 | B (MCP) | Kein Kontingent-Tool. Stattdessen Aufrufe je Repo zählen und den Lauf so takten, dass er bei einem Abbruch **wiederaufsetzbar** ist: Zwischenstand nach jedem Repo schreiben, nicht erst am Ende. |
 | C (weder noch) | Entfällt — ohne API kein Sweep. |
 
-Bei 403/429 mitten im Lauf: abbrechen und melden, nicht auf gut Glück
-weiterlaufen. Primäres Limit und Secondary-/Abuse-Limit sind getrennt; das
+**Transiente Fehler im Transport wiederholen, nicht im Gate tolerieren.** Ein
+Lauf über 47 Repos fand nichts und war trotzdem rot: `api.github.com` hatte
+eine einzige Verbindung ohne Antwort geschlossen (`RemoteDisconnected`). Das
+Gate hatte recht — ein Repo, das geworfen hat, ist kein sauberes Repo. Falsch
+war, dass der Aufruf es nur einmal versuchte. Die Reparatur gehört in den
+Transport:
+
+- bis zu **3 Versuche** mit Backoff für Verbindungsabbrüche, `429` und `5xx`;
+  ein `Retry-After` in Sekunden geht vor dem eigenen Wert;
+- **nie** für `403`/`404` — dreimal beantwortet bleibt es dieselbe Antwort, nur
+  langsamer;
+- ein **Timeout** auf jedem Aufruf, sonst hängt ein halboffener Socket den Lauf
+  bis zum Job-Abbruch, ohne zu sagen, bei welchem Repo;
+- was nach allen Versuchen unerreicht bleibt, bleibt **unerreicht** und macht
+  den Lauf rot. Die Meldung nennt die Zahl der Versuche, damit ein Pechpaket
+  von einem wirklich toten Endpunkt unterscheidbar ist.
+
+Das Gate aufzuweichen («ein unerreichtes Repo ist tolerierbar») kauft grüne
+Läufe, indem es «niemand hat hingeschaut» und «nichts gefunden» wieder
+ununterscheidbar macht — und erzieht dazu, bei Rot den Re-Run-Knopf zu drücken,
+statt hinzuschauen.
+
+Bei 403/429 mitten im Lauf, die auch nach den Wiederholungen bleiben:
+abbrechen und melden, nicht auf gut Glück weiterlaufen. Primäres Limit und Secondary-/Abuse-Limit sind getrennt; das
 zweite schlägt auf Bursts an, nicht auf Volumen — dort hilft Sequenzieren, beim
 primären nur Warten.
 

@@ -17,6 +17,7 @@
 
 SKILL.md=SKILL.md
 
+references/mcp-spec.md=references/mcp-spec.md
 references/mcp-publishing.md=references/mcp-publishing.md
 references/review-rules.md=references/review-rules.md
 references/repo-governance.md=references/repo-governance.md

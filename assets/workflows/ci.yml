@@ -46,6 +46,11 @@ jobs:
       # macht damit unberührten Code rot, gleichzeitig in jedem Repo, das
       # diese Vorlage benutzt, zu einem Zeitpunkt, den niemand gewählt hat.
       #
+      # Die Version steht NICHT hier, sondern in `requirements-lint.txt` des
+      # Zielrepos (eine Zeile: `ruff==X.Y.Z`, §8.1). Eine Zahl in der Vorlage
+      # veraltet still und wird mitkopiert — genau das ist passiert. Fehlt die
+      # Datei, scheitert dieser Schritt laut, statt irgendein ruff zu nehmen.
+      #
       # Seit 0.16.1 formatiert `ruff format` auch Python-Blöcke in Markdown; bis
       # 0.15.8 war das `preview`-only, `.md` blieb unberührt. Das Format-Gate
       # unten läuft über `.`, erfasst also ab dieser Version auch README, docs/
@@ -54,7 +59,26 @@ jobs:
       # NICHT `exclude`: das ersetzt ruffs Vorgabeliste und holt `.venv/` und
       # `node_modules/` zurück ins Gate.
       - name: Install tooling
-        run: python -m pip install "ruff==0.16.1" pytest
+        run: python -m pip install -r requirements-lint.txt pytest
+
+      # B1, zweite Hälfte: den Pin gegen das LAUFENDE Programm prüfen, nicht
+      # zwei Texte gegeneinander — und zwar VOR den Gates, sonst stehen deren
+      # Befunde schon im Log, bevor klar ist, welche Version sie erzeugt hat.
+      # Ein älteres ruff weiter vorne im PATH oder eine still gescheiterte
+      # Installation sind beide real vorgekommen.
+      - name: Ruff version gate
+        run: |
+          want=$(sed -n 's/^ruff==\([0-9][0-9.]*\)[[:space:]]*$/\1/p' requirements-lint.txt)
+          have=$(ruff --version | awk '{print $2}')
+          if [ -z "$want" ]; then
+            echo "::error::requirements-lint.txt pinnt ruff nicht exakt (erwartet: ruff==X.Y.Z)"
+            exit 1
+          fi
+          if [ "$want" != "$have" ]; then
+            echo "::error::Pin ruff==$want, aber es läuft ruff $have"
+            exit 1
+          fi
+          echo "ruff $have = Pin"
 
       # B2: Subprojekte erben die Wurzelkonfiguration NICHT — das stimmt, und es
       # ist der Grund, warum jedes Subprojekt seinen eigenen `select` braucht

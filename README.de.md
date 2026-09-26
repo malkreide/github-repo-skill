@@ -30,8 +30,12 @@ einem Prüfdurchlauf über 43 Repositories. Keine davon ist vorsorglich.
 - **Secrets-Check vor dem ersten Push** — Ignore-Regeln, automatisierter Scan,
   History-Bereinigung und eine kontextspezifische Prüfung für die öffentliche
   Verwaltung
-- **Reproduzierbare CI** — gepinnte Linter-Regelsätze, Konfiguration je
-  Subprojekt, keine blinden Assertions in Tests
+- **Reproduzierbare CI** — gepinnte Linter-Regelsätze, ein exakter ruff-Pin an
+  einer Stelle im Zielrepo, gegen das laufende Programm geprüft, Konfiguration
+  je Subprojekt, keine blinden Assertions in Tests
+- **MCP-Server auf Spec `2026-07-28`** — der zustandslose Protokollstand ist
+  Zielstand für jeden Server; Regeln aus der Spezifikation gelesen, dazu ein
+  Nachweis am Draht über `server/discover` vor dem Release
 - **Release-Gate** — prüft die Artefakte vor dem unveränderlichen PyPI-Upload
 - Zweisprachige README-Generierung (Englisch als Hauptdatei + deutsche Fassung),
   gegenseitig verlinkt
@@ -120,6 +124,7 @@ github-repo-skill/
 │   ├── templates/                    ← README.md, README.de.md
 │   └── workflows/                    ← ci.yml, publish.yml, dependabot.yml
 ├── references/
+│   ├── mcp-spec.md                   ← MCP-Spec 2026-07-28: Regeln und Nachweis am Draht
 │   ├── mcp-publishing.md             ← PyPI + MCP-Registry, vor jedem Release lesen
 │   ├── review-rules.md               ← vor Änderungen an bestehenden Repos lesen
 │   └── repo-governance.md · .en.md   ← Rulesets und IaC über viele Repos
@@ -141,10 +146,10 @@ Ein Intake-Schritt, zwölf Arbeitsschritte und eine Prüfspur:
 | Schritt | Inhalt |
 |---|---|
 | 0 | **Session-Intake** — Metadaten einmal erfassen, in `.github/repo-meta.yml` ablegen |
-| 1–2 | Projekttyp, Namenskonventionen, Dateistruktur |
+| 1–2 | Projekttyp, Namenskonventionen, Dateistruktur — MCP-Server zielen auf Spec `2026-07-28` |
 | 3–4 | README.md (EN) und README.de.md (DE), gegenseitig verlinkt |
 | 5–7 | LICENSE, .gitignore, CHANGELOG |
-| 8 | Python- und CI-Konfiguration — die drei Ursachen für CI-Fehler ohne Codeänderung |
+| 8 | Python- und CI-Konfiguration — die Ursachen für CI-Fehler ohne Codeänderung, der Pin, der nur im Zielrepo lebt, keine Urteile im Workflow-Heredoc |
 | 9 | Secrets-Check vor dem ersten Push |
 | 10 | Repo erstellen und konfigurieren |
 | 11 | Commit-Workflow inklusive Branch → Draft-PR für Web-Sessions |

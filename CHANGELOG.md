@@ -9,6 +9,50 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **MCP-Server zielen auf Spec `2026-07-28`** — neue Referenz
+  `references/mcp-spec.md`. Die Regeln (kein `initialize`, kein
+  `Mcp-Session-Id`, `server/discover` Pflicht, `ttlMs`/`cacheScope`,
+  `Mcp-Method`/`Mcp-Name`, `-32020 HeaderMismatch`) sind aus dem Changelog der
+  Spezifikation gelesen, nicht aus einer Zusammenfassung: im
+  `mcp-continuous-auditor` war eine Probe, die gegen eine Zusammenfassung
+  geschrieben war, bei drei von drei Regeln falsch. Dazu: was nicht mehr neu
+  gebaut wird (Roots, Sampling, Logging, `/sse`, DCR), warum die
+  Protokollversion dem SDK gehört (Untergrenze bewusst ohne Zahl), und ein
+  `server/discover`-Aufruf als Nachweis am Draht vor dem Release.
+  Intake-Feld `mcp_spec_version`, Validator-Regel **A5** (fehlend = WARN,
+  anderer Wert = ERROR), Checklisten- und Troubleshooting-Zeilen.
+
+- **§8.7 — keine Prüflogik im Workflow-Heredoc.** Zwei Vorfälle im Auditor:
+  ein Zusammenfassungs-Schritt las Schlüssel, die es nie gab, starb an
+  `KeyError` — und der Lauf blieb grün, weil `exit $rc` nur den ersten
+  Exit-Code meldete; ein Guard nur im Heredoc wurde nie gegen seinen Fall
+  geprüft.
+
+- **§8.3 — Tests mit dem Runner prüfen, den die CI benutzt.** Ein Modul mit
+  `import pytest` fiel unter `unittest discover` still aus der Discovery.
+
+- **§11.1 — kein Codex- oder Zweitmodell-Review als Merge-Bedingung**, weder
+  als Workflow noch als Zeile im PR-Template. Im Auditor zweimal parallel
+  eingeführt und einen Monat später entfernt. Beim Entfernen Lockfiles nicht
+  anfassen (`@openai/codex-sdk` ist dort transitive Abhängigkeit von
+  promptfoo). Dazu: vor einem PR offene PRs zum selben Thema prüfen.
+
+- **Review-Regel E8** — Links, die etwas über fremde Inhalte behaupten, auf
+  einen Tag pinnen und den Tag wöchentlich auf Aktualität prüfen. **F3
+  erweitert:** transiente Fehler (Verbindungsabbruch, `429`, `5xx`) im
+  Transport wiederholen, `403`/`404` nie; ein unerreichtes Repo bleibt
+  unerreicht und der Lauf rot.
+
+- **`validate_repo.py --fail-on=REGEL[,…]`** stuft WARN der genannten Regeln
+  für einen Lauf zu ERROR hoch. Die eigene CI nutzt das für C8 und verliert
+  damit ihren Python-Heredoc, der den JSON-Bericht ein zweites Mal las — genau
+  die Form, die §8.7 jetzt verbietet. Gegengeprüft: ein verstellter
+  Badge-Anker ist ohne Flag WARN/exit 0, mit Flag ERROR/exit 1.
+
+- **Validator B1 prüft die Pin-Quelle:** Formatgate ohne exakten Pin = ERROR,
+  ein `ruff==…` im Workflow-Text = WARN (zweite Driftstelle); ein exakter Pin
+  im `pyproject.toml`-dev-Extra wird als gleichwertig anerkannt.
+
 - **`github-repo.skill` — das Repo liefert jetzt ein installierbares Paket.**
   Bisher liess sich der Skill nur benutzen, indem man das Repository klonte und
   in ein Skills-Verzeichnis kopierte. Der Upload-Dialog von Claude Desktop und
@@ -54,6 +98,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   unlesbar machte — der Schaden fiele erst beim Upload auf, nicht beim Commit.
 
 ### Changed
+
+- **Der ruff-Pin steht nicht mehr in der Dokumentation.** `SKILL.md` §8.1
+  schreibt die Regel vor (exakt, sobald ein Formatgate steht), nie die Zahl.
+  `assets/workflows/ci.yml` trug `ruff==0.16.1`, während der Auditor schon auf
+  `0.16.3` stand — die Vorlage gegen Drift war selbst eine Driftquelle. Neu
+  liest die Vorlage aus `requirements-lint.txt` des Zielrepos (einzige
+  Stelle), prüft vor den Gates `ruff --version` gegen diesen Pin, und
+  `assets/workflows/dependabot.yml` schlägt Bumps als PR vor, dessen CI die
+  Messung ist. Das Versions-Gate ist in allen vier Zweigen lokal ausgelöst
+  (Treffer, abweichender Pin, Obergrenze statt exaktem Pin, fehlende Datei).
+  Die eigene CI dieses Repos folgt derselben Form; der Pin selbst bleibt
+  `0.16.1` — ihn zu heben ist eine eigene, gemessene Entscheidung. Datierte
+  Messangaben («gemessen mit 0.15.8») bleiben als Geschichte stehen.
+
+- **`server.json`-Gerüst auf Registry-Schema `2025-12-11`** (bisher
+  `2025-07-09`; Stand der Registry-Dokumentation am 2026-09-26), mit dem
+  Hinweis, dass dieses Datum nicht die Protokollversion ist.
 
 - **Ruff-Pin von 0.15.8 auf 0.16.1**, in der eigenen CI und in
   `assets/workflows/ci.yml`. Portfolioweit gemessen: 32 Repos fahren bereits
