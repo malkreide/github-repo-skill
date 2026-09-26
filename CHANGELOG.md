@@ -121,6 +121,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Dependabot-Vorlage monatlich statt wöchentlich.** `assets/workflows/dependabot.yml`
+  (und die eigene `.github/dependabot.yml`) laufen jetzt `monthly`. Anlass war
+  der Sweep auf ruff 0.16.9: 50 Repos brauchten je einen PR, parallel lagen
+  Dependabot-PRs für 0.16.5 bis 0.16.8 offen, die der Sweep überholt hat. Bei
+  einem Portfolio dieser Grösse ist die Zahl der PRs die Last, nicht ihr
+  Inhalt — ein Monat bündelt mehrere Patch-Releases in einen Bump.
+  Sicherheitsupdates betrifft das nicht: Dependabot-Security-Updates laufen
+  unabhängig vom `schedule`, sofern sie im Repo eingeschaltet sind.
+
 - **Der ruff-Pin steht nicht mehr in der Dokumentation.** `SKILL.md` §8.1
   schreibt die Regel vor (exakt, sobald ein Formatgate steht), nie die Zahl.
   `assets/workflows/ci.yml` trug `ruff==0.16.1`, während der Auditor schon auf
