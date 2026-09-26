@@ -435,10 +435,20 @@ liest von dort:
 | `.github/dependabot.yml` | `pip`-Eintrag nur für `ruff` — schlägt den Bump als PR vor, dessen CI ihn misst |
 
 Pinnt ein bestehendes Repo exakt im dev-Extra von `pyproject.toml` (`uv sync`),
-ist das ebenfalls **eine** Stelle und kein Fehler — `requirements-lint.txt` ist
-die Form der Vorlage, nicht die einzige zulässige. Der Validator (B1) meldet
-nur ein Formatgate ohne exakten Pin als ERROR und ein `ruff==…` im
-Workflow-Text als WARN.
+in `requirements-dev.txt`, in einer `constraints.txt` oder — bewusst — einzig
+im Workflow, ist das ebenfalls **eine** Stelle und kein Fehler.
+`requirements-lint.txt` ist die Form der Vorlage, nicht die einzige zulässige.
+Gezählt werden Stellen, nicht Dateinamen: Der Validator (B1) meldet ein
+Formatgate ohne exakten Pin und widersprüchliche Zahlen als ERROR, einen Pin
+an mehr als einer Stelle als WARN, und eine einzige Stelle als INFO. Die `rev`
+in `.pre-commit-config.yaml` zählt nicht mit — sie ist der notwendige Spiegel.
+
+**Nicht «angleichen», was schon eine Quelle hat.** Beim ersten Sweep über das
+Portfolio meldete B1 fünf Repos; vier davon waren Fehlalarme der ersten
+Regelfassung, darunter eines, dessen `CLAUDE.md` ausdrücklich festhält, dass
+der Pin einzig in `lint.yml` steht und nicht angeglichen werden soll. Eine
+Umstellung dort hätte nichts verbessert und eine dokumentierte Entscheidung
+überschrieben (Regel D, `references/review-rules.md`).
 
 Beim Anlegen die aktuelle Version erfragen, nicht aus dem Gedächtnis nehmen:
 

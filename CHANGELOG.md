@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **B1 zählte Dateinamen statt Stellen — vier von fünf Meldungen waren
+  Fehlalarme.** Die Fassung aus #24 warnte bei jedem `ruff==` im Workflow und
+  kannte als Quelle nur `requirements-lint.txt` und `pyproject.toml`. Über das
+  Portfolio (62 Repos) gemessen:
+
+  | Repo | alte Meldung | tatsächlich |
+  |---|---|---|
+  | `methodos-ai` | ERROR «ohne exakten Pin» | exakt in `constraints.txt` |
+  | `zuerich-schulferien-ics` | ERROR «ohne exakten Pin» | exakt in `requirements-dev.txt` |
+  | `swiss-public-data-mcp` | WARN «Pin im Workflow» | einzige Stelle, per `CLAUDE.md` bewusst |
+  | `raspberry-pi-ai-skill` | WARN «Pin im Workflow» | einzige Stelle |
+  | `mcp-audit-skill` | WARN | **echt**: `lint.yml` + `test.yml`, die zweite Kopie ungeprüft |
+
+  Neu werden die **Stellen** gezählt — Workflow-Text, `requirements*.txt`,
+  `constraints*.txt`, `pyproject.toml` —, Kommentare ausgenommen. Keine Stelle
+  oder widersprüchliche Zahlen: ERROR. Mehr als eine Stelle: WARN. Genau eine:
+  INFO, egal wo. Nach der Korrektur bleibt im Portfolio genau der eine echte
+  Fall übrig. §8.1 sagt jetzt ausdrücklich, dass eine bestehende einzige Quelle
+  nicht «angeglichen» wird.
+
 ### Added
 
 - **MCP-Server zielen auf Spec `2026-07-28`** — neue Referenz
