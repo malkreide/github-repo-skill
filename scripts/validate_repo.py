@@ -490,11 +490,31 @@ def check_mcp_spec(repo: Path, rep: Report) -> None:
         )
 
 
-def check_ruff_pin(repo: Path, rep: Report) -> None:
-    """B1 — ein Formatgate braucht einen exakten Pin, und zwar an einer Stelle.
+def _exact_ruff_pins(text: str) -> list[str]:
+    """Exakte ruff-Pins in einem Text, Kommentarzeilen ausgenommen."""
+    lines = [ln.split("#", 1)[0] for ln in text.splitlines()]
+    return RUFF_EXACT_RE.findall("\n".join(lines))
 
-    Die Quelle ist requirements-lint.txt (SKILL.md 8.1). Ein Literal im
-    Workflow ist eine zweite Stelle und damit eine zweite Driftgelegenheit.
+
+def check_ruff_pin(repo: Path, rep: Report) -> None:
+    """B1 — ein Formatgate braucht einen exakten Pin, und zwar an EINER Stelle.
+
+    Gezählt werden die Stellen, an denen die Zahl steht: Workflow-Text,
+    `requirements*.txt` und `constraints*.txt` im Wurzelverzeichnis und das
+    `pyproject.toml`. Eine Stelle ist richtig, egal welche — die Vorlage
+    schlägt `requirements-lint.txt` vor, aber ein exakter Pin im dev-Extra, in
+    `requirements-dev.txt`, in einer Constraints-Datei oder als einziger im
+    Workflow ist ebenfalls eine Quelle. Erst eine zweite Stelle ist eine
+    Driftgelegenheit (WARN), abweichende Zahlen sind Drift (ERROR).
+
+    Die erste Fassung dieser Regel warnte bei jedem `ruff==` im Workflow und
+    kannte als Quelle nur `requirements-lint.txt` und `pyproject.toml`. Über
+    das Portfolio gemessen waren damit vier von fünf Meldungen Fehlalarme:
+    zwei Repos pinnten korrekt in `constraints.txt` bzw. `requirements-dev.txt`
+    (ERROR «ohne exakten Pin»), zwei hatten die Zahl bewusst einzig im Workflow
+    (WARN). Nur ein Repo trug die Zahl tatsächlich mehrfach.
+    Die `rev` in `.pre-commit-config.yaml` zählt nicht mit: pre-commit kann
+    keine Datei lesen, sie ist ein notwendiger Spiegel und kein Fehler.
     """
     wf_dir = repo / ".github" / "workflows"
     workflows = sorted(wf_dir.glob("*.y*ml")) if wf_dir.is_dir() else []
@@ -502,43 +522,40 @@ def check_ruff_pin(repo: Path, rep: Report) -> None:
     if not any("ruff format --check" in t for t in texts.values()):
         return
 
-    req = repo / "requirements-lint.txt"
-    req_pin = None
-    if req.exists():
-        m = RUFF_EXACT_RE.search(req.read_text(encoding="utf-8", errors="replace"))
-        req_pin = m.group(0) if m else None
+    candidates = sorted(repo.glob("requirements*.txt")) + sorted(
+        repo.glob("constraints*.txt")
+    )
+    candidates += list(texts)
+    if (repo / "pyproject.toml").exists():
+        candidates.append(repo / "pyproject.toml")
 
-    literals = [
-        (w.relative_to(repo), m.group(0))
-        for w, t in texts.items()
-        for m in RUFF_EXACT_RE.finditer(t)
-    ]
-    for rel, pin in literals:
-        rep.warn(
-            "B1",
-            f"{rel}: {pin} steht im Workflow — Pin gehört nach "
-            "requirements-lint.txt, der Workflow liest von dort (8.1)",
-        )
-    if req_pin:
-        rep.info("B1", f"ruff-Pin aus requirements-lint.txt: {req_pin}")
-        return
-    # Bestehende Repos pinnen oft im dev-Extra (uv sync) — das ist ein exakter
-    # Pin an einer Stelle und kein Fehler, nur nicht die Vorlagen-Form.
-    pyproject = repo / "pyproject.toml"
-    elsewhere = None
-    if pyproject.exists():
-        m = RUFF_EXACT_RE.search(
-            pyproject.read_text(encoding="utf-8", errors="replace")
-        )
-        elsewhere = f"pyproject.toml ({m.group(0)})" if m else None
-    if elsewhere:
-        rep.info("B1", f"ruff exakt gepinnt in {elsewhere}")
-    elif not literals:
+    places: list[tuple[str, list[str]]] = []
+    for path in candidates:
+        raw = texts.get(path) or path.read_text(encoding="utf-8", errors="replace")
+        pins = _exact_ruff_pins(raw)
+        if pins:
+            places.append((path.relative_to(repo).as_posix(), sorted(set(pins))))
+
+    if not places:
         rep.error(
             "B1",
             "Formatgate (ruff format --check) ohne exakten ruff-Pin — "
             "requirements-lint.txt mit ruff==X.Y.Z anlegen (8.1)",
         )
+        return
+
+    listing = ", ".join(f"{name} ({', '.join(pins)})" for name, pins in places)
+    versions = {pin for _, pins in places for pin in pins}
+    if len(versions) > 1:
+        rep.error("B1", f"ruff-Pins widersprechen sich: {listing} (8.1)")
+    elif len(places) > 1:
+        rep.warn(
+            "B1",
+            f"ruff-Pin steht an {len(places)} Stellen: {listing} — auf eine "
+            "Quelle zusammenführen, die übrigen lesen von dort (8.1)",
+        )
+    else:
+        rep.info("B1", f"ruff exakt gepinnt, eine Quelle: {listing}")
 
 
 def check_blind_assertions(repo: Path, rep: Report) -> None:
