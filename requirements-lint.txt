@@ -1,3 +1,3 @@
 # Einzige Quelle des ruff-Pins (SKILL.md 8.1). Die CI liest von hier und
 # prueft vor den Gates, dass genau diese Version laeuft.
-ruff==0.16.1
+ruff==0.16.9
