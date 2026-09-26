@@ -20,3 +20,22 @@ updates:
     open-pull-requests-limit: 5
     commit-message:
       prefix: "ci"
+
+  # §8.1: Der ruff-Pin lebt in `requirements-lint.txt` des Zielrepos und
+  # nirgends sonst. Dependabot schlägt einen neuen Pin als PR vor — die CI
+  # dieses PRs IST die Messung, die §8.1 vor jedem Bump verlangt. Ein roter
+  # Format-Gate-Lauf dort ist kein Defekt, sondern die Nachricht, dass die neue
+  # Version anders formatiert: bewusst entscheiden, nicht blind mergen.
+  #
+  # `allow` beschränkt den Eintrag auf ruff. Ohne ihn schlüge Dependabot auch
+  # Laufzeit-Abhängigkeiten aus pyproject.toml vor — ein anderes Thema mit
+  # anderem Risiko, das hier nicht nebenbei mitlaufen soll.
+  - package-ecosystem: pip
+    directory: /
+    schedule:
+      interval: weekly
+    allow:
+      - dependency-name: ruff
+    open-pull-requests-limit: 1
+    commit-message:
+      prefix: "deps(dev)"

@@ -27,8 +27,12 @@ a review pass across 43 repositories. None are precautionary.
   on the web, where `gh` does not exist), or with plain `git`
 - **Secrets check before the first push** — ignore rules, automated scan, history
   remediation, and a context-specific check for public sector projects
-- **Reproducible CI** — pinned linter rule sets, per-subproject configuration, no
-  blind assertions in tests
+- **Reproducible CI** — pinned linter rule sets, an exact ruff pin kept in one
+  file of the target repo and checked against the running binary,
+  per-subproject configuration, no blind assertions in tests
+- **MCP servers on spec `2026-07-28`** — the stateless protocol revision is the
+  target for every server; rules read from the specification, plus a wire check
+  via `server/discover` before a release
 - **Release gate** — validates artifacts before an immutable PyPI upload
 - Bilingual README generation (English main + German translation), cross-linked
 - Review rules for existing repositories: report, never "tidy up"
@@ -113,6 +117,7 @@ github-repo-skill/
 │   ├── templates/                    ← README.md, README.de.md
 │   └── workflows/                    ← ci.yml, publish.yml, dependabot.yml
 ├── references/
+│   ├── mcp-spec.md                   ← MCP spec 2026-07-28: rules and wire check
 │   ├── mcp-publishing.md             ← PyPI + MCP registry, read before a release
 │   ├── review-rules.md               ← read before touching an existing repo
 │   └── repo-governance.md · .en.md   ← rulesets and IaC across many repos
@@ -134,10 +139,10 @@ An intake step, twelve working steps, and a review track:
 | Step | Content |
 |---|---|
 | 0 | **Session intake** — collect metadata once, persist to `.github/repo-meta.yml` |
-| 1–2 | Project type, naming conventions, file structure |
+| 1–2 | Project type, naming conventions, file structure — MCP servers target spec `2026-07-28` |
 | 3–4 | README.md (EN) and README.de.md (DE), cross-linked |
 | 5–7 | LICENSE, .gitignore, CHANGELOG |
-| 8 | Python and CI configuration — the three causes of CI failures without a code change |
+| 8 | Python and CI configuration — the causes of CI failures without a code change, the pin that lives only in the target repo, no verdicts in workflow heredocs |
 | 9 | Secrets check before the first push |
 | 10 | Repository creation and configuration |
 | 11 | Commit workflow, including the branch → draft PR flow for web sessions |

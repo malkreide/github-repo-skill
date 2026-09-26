@@ -17,3 +17,15 @@ updates:
     open-pull-requests-limit: 5
     commit-message:
       prefix: "ci"
+
+  # SKILL.md 8.1: der ruff-Pin lebt in requirements-lint.txt. Der Bump kommt
+  # als PR, dessen CI (Versions- und Format-Gate) ihn misst.
+  - package-ecosystem: pip
+    directory: /
+    schedule:
+      interval: weekly
+    allow:
+      - dependency-name: ruff
+    open-pull-requests-limit: 1
+    commit-message:
+      prefix: "deps(dev)"

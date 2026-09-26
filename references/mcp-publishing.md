@@ -13,6 +13,7 @@ durch eine neue Version ersetzen.
 
 ## Vor dem ersten Release: Reihenfolge
 
+0. Protokollstand `2026-07-28` am Draht nachgewiesen (`references/mcp-spec.md`, S4)
 1. `mcp-name`-Marker ins README (A1)
 2. `server.json` mit `description` ≤ 100 Zeichen (A2)
 3. **Pending Publisher auf PyPI anlegen** (A3) — vor dem ersten Workflow-Lauf
@@ -136,7 +137,7 @@ curl -s https://pypi.org/simple/<paket>/ | grep -o '<paket>-[0-9.]*'
 
 ```json
 {
-  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-07-09/server.schema.json",
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.<github-user>/<server>",
   "description": "≤ 100 Zeichen, Englisch, ohne Punkt am Ende",
   "version": "1.0.0",
@@ -153,3 +154,11 @@ curl -s https://pypi.org/simple/<paket>/ | grep -o '<paket>-[0-9.]*'
 
 `version` muss mit `pyproject.toml` und dem Git-Tag übereinstimmen — der
 Validator und das Release-Gate prüfen das beide.
+
+**Das Datum im `$schema` ist die Version des Registry-Schemas, nicht die
+MCP-Protokollversion.** `2025-12-11` ist der Stand, den die
+[Registry-Dokumentation](https://github.com/modelcontextprotocol/registry/blob/main/docs/reference/server-json/generic-server-json.md)
+am 2026-09-26 in allen Beispielen verwendet; bis dahin stand hier `2025-07-09`.
+Vor einem Erst-Release dort nachsehen, ob sich der Stand bewegt hat — nicht
+diese Datei als Quelle nehmen. Der Protokollstand des Servers (`2026-07-28`)
+steht in `references/mcp-spec.md` und hat mit diesem Datum nichts zu tun.

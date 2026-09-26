@@ -16,6 +16,7 @@ Standard-Dateien, Secrets-Check, reproduzierbarer CI und Release-Gate.
 | `scripts/check_release_artifacts.py` | Im Release-Workflow, nach `python -m build`, vor dem Upload. |
 | `scripts/test_c1.py` | Nach jeder Änderung an der C1-Logik in `validate_repo.py`: `python3 scripts/test_c1.py` |
 | `scripts/test_emoji.py` | Nach jeder Änderung an `EMOJI_RE`: `python3 scripts/test_emoji.py` |
+| `references/mcp-spec.md` | Sobald ein `*-mcp`-Repo angelegt, migriert oder released wird. Zielstand ist MCP-Spec `2026-07-28`. |
 | `references/mcp-publishing.md` | Sobald ein `*-mcp`-Repo publiziert oder released wird. |
 | `references/review-rules.md` | **Vor** jeder Änderung an einem bestehenden Repo. |
 | `references/repo-governance.md` (EN: `.en.md`) | Sobald eine Regel **portfolioweit** gelten soll: Rulesets, Custom Properties, Terraform. |
@@ -151,6 +152,7 @@ ableitbar ist.
 | `version` | nein | `1.0.0` |
 | `pypi_package` | nur PyPI | Paketname, identisch in `pyproject.toml` |
 | `mcp_name` | nur MCP | `io.github.<github_user>/<server>` für den README-Marker (A1) |
+| `mcp_spec_version` | nur MCP | `2026-07-28` — Zielstand, kein Vorschlag zur Auswahl (`references/mcp-spec.md`) |
 
 **Fragestil:** Steht `AskUserQuestion` zur Verfügung, damit die Auswahlfelder
 (`visibility`, `license`, `project_type`) abfragen — abgeleiteter Wert als erste
@@ -180,6 +182,7 @@ language: python
 version: 1.0.0
 pypi_package: fedlex-mcp
 mcp_name: io.github.malkreide/fedlex-mcp
+mcp_spec_version: 2026-07-28
 confirmed: true          # false = aus Vorschlägen übernommen, unbestätigt
 offen:                   # was das aktuelle Backend nicht setzen konnte
   - topics (Backend B: kein MCP-Tool — Settings-UI oder später mit gh)
@@ -205,6 +208,7 @@ konsequent wiederverwenden:
 | `author_label` | `## Autor·in` in `README.de.md` (Schritt 4) |
 | `default_branch` | Push- und Workflow-Trigger (Schritt 8, 11) |
 | `mcp_name` | README-Marker (Schritt 3) |
+| `mcp_spec_version` | SDK-Untergrenze, README-Hinweis, Nachweis vor dem Release (`references/mcp-spec.md`) |
 | `version`, `pypi_package` | Badge, CHANGELOG, Tag, Release-Gate (Schritt 12) |
 
 ---
@@ -266,9 +270,17 @@ unerreichbar. Dasselbe bei `CONTRIBUTING.md`. Datei anlegen genügt nicht.
 
 ```
 ├── server.json         ← name, version, description (≤ 100 Zeichen)
-├── pyproject.toml      ← readme = "README.md", version identisch zu server.json
+├── pyproject.toml      ← readme = "README.md", version identisch zu server.json,
+│                         SDK-Untergrenze auf eine Version, die 2026-07-28 spricht
 └── scripts/check_release_artifacts.py
 ```
+
+**Jeder MCP-Server zielt auf Spec `2026-07-28`** — neue Server von Anfang an,
+bestehende als Migration. Der Stand ist zustandslos: kein `initialize`, kein
+`Mcp-Session-Id`, `server/discover` ist Pflicht, Listen-Results tragen `ttlMs`
+und `cacheScope`. Roots, Sampling, Logging und der `/sse`-Transport werden
+nicht mehr neu gebaut. Die Regeln, gelesen aus der Spezifikation, und der
+Nachweis am Draht: `references/mcp-spec.md`.
 
 ---
 
@@ -377,7 +389,8 @@ MAJOR = Breaking Change.
 
 8.1–8.3 verursachen CI-Fehler, die **ohne Codeänderung** auftreten oder Fehler
 durchlassen. 8.5–8.6 betreffen nicht die Korrektheit des Laufs, sondern das,
-was er darf und was er kostet.
+was er darf und was er kostet. 8.7 betrifft, ob ein Urteil im Workflow
+überhaupt prüfbar ist.
 
 ### 8.1 Linter-Regelsatz explizit pinnen
 
@@ -392,7 +405,7 @@ select = ["E", "F", "W", "I", "UP"]
 ignore = ["E501"]
 ```
 
-Und in der CI mit Obergrenze installieren: `pip install "ruff>=0.6,<0.7"`.
+Und in der CI mit Obergrenze installieren: `pip install "ruff>=X.Y,<X.Z"`.
 
 **Sobald ein Formatgate dazukommt, reicht die Obergrenze nicht mehr.** Für
 `ruff check` ist sie richtig: Der Regelsatz steht in `select`, die Obergrenze
@@ -403,6 +416,50 @@ einem Zeitpunkt, den niemand gewählt hat. Wer ein Formatgate einführt, ohne
 exakt zu pinnen, tauscht eine bekannte Lücke gegen einen Zeitzünder.
 
 Deshalb: **`ruff==X.Y.Z` exakt, sobald `ruff format --check` in der CI steht.**
+
+**Die Versionsnummer gehört ins Zielrepo — nicht in diesen Skill, nicht in
+seine Vorlagen, nicht in ein README.** Der Skill schreibt die *Regel* vor, nie
+die Zahl. Eine Zahl in der Dokumentation veraltet still und wird trotzdem
+kopiert: `assets/workflows/ci.yml` trug `ruff==0.16.1`, während der
+`mcp-continuous-auditor` bereits auf `0.16.3` stand — die Vorlage, die Drift
+verhindern sollte, war selbst eine Quelle der Drift.
+
+Deshalb steht der Pin im Zielrepo an **genau einer** Stelle, und alles andere
+liest von dort:
+
+| Wo | Was |
+|---|---|
+| `requirements-lint.txt` | die eine Zeile `ruff==X.Y.Z` — einzige Quelle |
+| `.github/workflows/ci.yml` | `pip install -r requirements-lint.txt`, danach das Versions-Gate (unten) |
+| `.pre-commit-config.yaml` (falls vorhanden) | `rev:` muss dieselbe Version tragen — zweite Stelle, also zweite Driftgelegenheit; nur anlegen, wenn pre-commit tatsächlich genutzt wird |
+| `.github/dependabot.yml` | `pip`-Eintrag nur für `ruff` — schlägt den Bump als PR vor, dessen CI ihn misst |
+
+Pinnt ein bestehendes Repo exakt im dev-Extra von `pyproject.toml` (`uv sync`),
+ist das ebenfalls **eine** Stelle und kein Fehler — `requirements-lint.txt` ist
+die Form der Vorlage, nicht die einzige zulässige. Der Validator (B1) meldet
+nur ein Formatgate ohne exakten Pin als ERROR und ein `ruff==…` im
+Workflow-Text als WARN.
+
+Beim Anlegen die aktuelle Version erfragen, nicht aus dem Gedächtnis nehmen:
+
+```bash
+python3 -m pip index versions ruff | head -1
+```
+
+**Das Versions-Gate vergleicht den Pin mit dem laufenden Programm, nicht zwei
+Texte miteinander.** Zweimal lief ein anderes ruff als das gepinnte: einmal
+verdeckte ein älteres unter `~/.local/bin` das frisch installierte, einmal war
+die Installation mit unterdrückter Ausgabe still gescheitert. Die Gates liefen
+beide Male — unter der falschen Version. `assets/workflows/ci.yml`
+prüft deshalb `ruff --version` gegen `requirements-lint.txt`, **bevor**
+`ruff check` und `ruff format --check` laufen.
+
+**Einen Pin heben heisst messen, dann ändern, und nur die Pin-Stellen.** Vor dem
+Bump beide Gates mit der neuen Version gegen das Repo laufen lassen. Beim Ändern
+nur die Stellen aus der Tabelle anfassen — kein `sed` über das ganze Repo:
+Testfixtures und Sätze über früheres Verhalten nennen alte Versionen als
+Tatsache, und ein blindes Ersetzen schreibt Testdaten und Geschichte um, statt
+einen Pin zu heben.
 
 ```bash
 ruff check .                 # Regelsatz aus select
@@ -448,6 +505,13 @@ Tippfehler im Modellnamen. Immer die konkrete Exception:
 with pytest.raises(ValidationError):
     ...
 ```
+
+**Mit dem Runner prüfen, den die CI benutzt.** Ein Testmodul, das `pytest`
+importiert, war lokal grün, weil die Wegwerf-venv pytest zufällig enthielt. Die
+CI lief mit `unittest discover` ohne pytest — und scheiterte am **Import**,
+nicht an einer Assertion: das Modul fiel aus der Discovery, während jede andere
+Datei weiter `ok` meldete. Ein grüner Lauf unter einem anderen Runner
+beantwortet eine Frage, die niemand gestellt hat.
 
 ### 8.4 Workflows kopieren
 
@@ -508,6 +572,30 @@ sie zusätzlich brauchen — in `publish.yml` etwa `id-token: write` für OIDC.
 PyPI-Upload abzubrechen ist kein gespartes Kontingent, sondern ein halber
 Release. `assets/workflows/publish.yml` setzt deshalb bewusst nur
 `timeout-minutes`.
+
+### 8.7 Keine Prüflogik im Workflow-Heredoc
+
+Python oder Shell, das inline im YAML ein **Urteil** fällt, läuft nur auf dem
+Runner — kein Test erreicht es, keine Mutation trifft es. Zwei Folgen, beide
+gemessen im `mcp-continuous-auditor`:
+
+- Ein Zusammenfassungs-Schritt las Schlüssel (`swept`), die der Bericht nie
+  hatte. Er lief erst, als das Token zum ersten Mal echt war, starb an
+  `KeyError` — und der Lauf war trotzdem **grün**, weil `rc=$?` den Exit-Code
+  des ersten Programms festhielt und `exit $rc` nur diesen meldete.
+- Ein Guard, der nur im Heredoc existierte, liess sich nie gegen den Zustand
+  prüfen, den er melden sollte. Ob er überhaupt anschlägt, war unbekannt.
+
+Regel: **Verdikte gehören in ein Skript mit Test**, der Workflow ruft es nur
+auf. Im Heredoc bleibt, was nichts entscheidet (Job-Summary, Formatierung).
+Die eine Ausnahme ist ein einzelner Vergleich ohne Schema, dessen Fehlerzweige
+beim Einführen einmal gezielt ausgelöst wurden — so das Versions-Gate in
+`assets/workflows/ci.yml` (Treffer, abweichender Pin, fehlender exakter Pin,
+fehlende Datei). Alles, was einen Bericht liest oder mehr als eine Bedingung
+verknüpft, ist keine Ausnahme mehr.
+
+Und wo ein Schritt einen Bericht schreibt und ein zweiter ihn liest: beides aus
+**einem** Programmlauf, nicht zwei Leser mit zwei Vorstellungen vom Schema.
 
 ---
 
@@ -623,6 +711,8 @@ git push -u origin {branch-name}
 
 - **Draft-PR eröffnen**, sobald der Branch gepusht ist — Backend A: `gh pr create --draft`, Backend B: `create_pull_request` mit `draft: true`.
 - **PR-Template prüfen** (`.github/pull_request_template.md`, `.github/PULL_REQUEST_TEMPLATE.md`, Wurzel, `docs/`) und dessen Sektionen übernehmen, falls vorhanden.
+- **Kein Codex- oder Zweitmodell-Review als Merge-Bedingung.** Weder als Workflow noch als Checklistenzeile im PR-Template. Das Portfolio führt kein solches Gate; eine Zeile, die ein nicht existierendes Gate verlangt, ist eine Anforderung ohne Prüfer. Im `mcp-continuous-auditor` wurde sie in zwei parallelen PRs eingeführt und einen Monat später wieder entfernt. Beim Entfernen: nur die Zeile und einen dadurch leeren Abschnitt — **nicht** Treffer in Lockfiles (`@openai/codex-sdk` liegt dort als transitive Abhängigkeit von promptfoo mit Integritätshash; ein Eingriff bricht die Reproduzierbarkeit und hat mit dem Gate nichts zu tun).
+- **Parallele Sessions am selben Thema** erzeugen Doppel-PRs (derselbe Template-Zusatz kam zweimal, einer musste per Merge-Commit «stand dort schon» aufgelöst werden). Vor dem Anlegen offene PRs des Repos auf dasselbe Thema prüfen (`list_pull_requests` bzw. `gh pr list`).
 - **Push-Fehler durch Netzwerk**: bis zu vier Versuche mit 2 s, 4 s, 8 s, 16 s Wartezeit. Ein `403` ohne Netzwerkfehler ist meist ein archiviertes Repo (F2), keine fehlende Berechtigung.
 - **Der Container ist ephemer.** Nicht gepushte Arbeit ist nach Sessionende verloren — vor dem Abschluss committen und pushen.
 - **Ist der PR eines Branches bereits gemergt**, wird für Folgearbeit nicht auf der gemergten History weitergebaut: Branch vom aktuellen Default-Branch neu aufsetzen (`git checkout -B {branch} origin/{default}`) und einen neuen PR eröffnen.
@@ -641,7 +731,8 @@ git push -u origin {branch-name}
 ## Schritt 12: Release erstellen
 
 **Vorher:** `python3 scripts/validate_repo.py .` muss ohne ERROR durchlaufen.
-Bei MCP-Servern zusätzlich `references/mcp-publishing.md` lesen.
+Bei MCP-Servern zusätzlich `references/mcp-publishing.md` lesen und den
+Protokollstand am Draht nachweisen (`references/mcp-spec.md`, S4).
 
 ```bash
 VERSION=1.0.0
@@ -729,8 +820,9 @@ falsche Änderung oder einen Fehlalarm verhindert:
 | E5 | Default-Branch ist nicht immer `main` |
 | E6 | C1-Reihenfolgefehler zeigt oft auf eine Inhaltssektion, nicht auf den Schlussblock — vor dem Umsortieren prüfen, wo die gemeldete Sektion steht |
 | E7 | Emoji ≠ «Zeichen über U+2000». `↔` ist Typografie, `↔️` ein Emoji — Textdarstellungs-Zeichen zählen erst mit VS16 |
+| E8 | Links, die etwas über fremde Inhalte behaupten, auf einen Tag pinnen — und den Tag wöchentlich auf Aktualität prüfen |
 | F2 | 403 beim Push: zuerst Archiv-Status prüfen, nicht Berechtigungen |
-| F3 | Ein abgebrochener Sweep ist kein Teilergebnis — nicht erreichte Repos zuerst und namentlich nennen |
+| F3 | Ein abgebrochener Sweep ist kein Teilergebnis — nicht erreichte Repos zuerst und namentlich nennen; transiente Fehler im Transport wiederholen, nie im Gate tolerieren |
 
 ---
 
@@ -766,9 +858,19 @@ falsche Änderung oder einen Fehlalarm verhindert:
 **CI**
 - [ ] `[tool.ruff.lint] select` explizit, in **jedem** pyproject
 - [ ] ruff gepinnt — Obergrenze genügt für `check`, **exakt** sobald ein Formatgate steht (8.1)
+- [ ] Pin an **einer** Stelle (`requirements-lint.txt`), Workflow liest von dort, Versions-Gate vor den Gates (8.1)
+- [ ] Keine ruff-Version als *Vorgabe* in README, Skill-Text oder Vorlagen — der Pin lebt nur im Zielrepo; datierte Messangaben («gemessen mit …») dürfen stehen (8.1)
 - [ ] `line-length` explizit gesetzt, auch wenn sie dem Default entspricht (8.1)
 - [ ] `ruff format --check` als eigener Schritt — und lokal vor dem Push mitgefahren
 - [ ] Keine `pytest.raises(Exception)`
+- [ ] Tests lokal mit demselben Runner wie in der CI (8.3)
+- [ ] Keine Prüflogik im Workflow-Heredoc (8.7)
+
+**MCP-Protokoll**
+- [ ] `mcp_spec_version: 2026-07-28` in `repo-meta.yml` (A5)
+- [ ] SDK-Untergrenze auf eine Version, die `2026-07-28` spricht, Lockfile nachgezogen (`references/mcp-spec.md` S3)
+- [ ] `server/discover` am Draht geprüft, `supportedVersions` enthält `2026-07-28` (S4)
+- [ ] Keine neuen Roots-, Sampling-, Logging- oder `/sse`-Features (S2)
 
 **Release (MCP/PyPI)**
 - [ ] `mcp-name`-Marker in der als `readme` deklarierten Datei
@@ -789,6 +891,12 @@ falsche Änderung oder einen Fehlalarm verhindert:
 | Publish erfolgreich, `/pypi/<paket>/json` zeigt alte Version | JSON-API liefert gecachte Antworten | gegen `https://pypi.org/simple/<paket>/` prüfen (F1) |
 | Re-Run schlägt identisch fehl | alter Tag-Lauf checkt alten Commit aus | `workflow_dispatch` oder neuer Tag (A4) |
 | CI rot ohne Codeänderung | ruff-Default-Regelsatz hat sich geändert | `select` pinnen (8.1) |
+| Formatgate rot ohne Codeänderung, lokal grün | lokal läuft ein anderes ruff als der Pin | `ruff --version` gegen `requirements-lint.txt`; Versions-Gate (8.1) |
+| Testmodul fehlt im CI-Lauf, alle anderen `ok` | Import scheitert in der Discovery (z. B. `pytest` fehlt unter `unittest`) | mit dem CI-Runner lokal prüfen (8.3) |
+| Workflow grün, Zusammenfassung leer oder Traceback im Log | Inline-Python im YAML; `exit $rc` meldet nur den ersten Exit-Code | Logik in ein getestetes Skript (8.7) |
+| `403` auf `/commits/{sha}/check-runs` mit Fine-grained-PAT | Die Checks-API ist für Fine-grained-Tokens nicht freigebbar — nur GitHub Apps | `/actions/runs?head_sha=…` mit `Actions: Read` |
+| MCP-Client meldet «method not found» auf `initialize` | Server ist auf `2026-07-28`, der Client noch nicht — kein Serverfehler | Client heben; Protokollstand im README nennen (`references/mcp-spec.md` S5) |
+| `400` mit `-32020 HeaderMismatch` | `MCP-Protocol-Version`-Header ≠ `_meta`-Wert, oder leerer `Mcp-Name` | `references/mcp-spec.md` S1 |
 | Lint übersieht Subprojekt | eigene `pyproject.toml` erbt nichts | eigener `select` (8.2) |
 | `403` beim Push, Lesen geht | Repo archiviert | `gh repo view --json isArchived` (F2) |
 | `gh: command not found` | Web-/Remote-Session ohne CLI | Backend B oder C, siehe Mapping-Tabelle oben |
