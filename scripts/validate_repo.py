@@ -353,6 +353,21 @@ def check_mcp_marker(repo: Path, rep: Report) -> None:
     pyproject = repo / "pyproject.toml"
     if not pyproject.exists():
         return
+    # Der Marker ist MCP-spezifisch. Ohne server.json und mit einem project_type
+    # ≠ mcp-server in repo-meta.yml gibt es nichts zu registrieren — ein ERROR
+    # wäre dort ein Fehlalarm (gemeldet aus personakit, python-lib). Fehlt
+    # repo-meta.yml oder das Feld, bleibt die Prüfung aktiv: lieber ein
+    # Fehlalarm als ein MCP-Release ohne Marker.
+    project_type = repo_meta_field(repo, "project_type")
+    if not (repo / "server.json").exists() and project_type not in (
+        None,
+        "mcp-server",
+    ):
+        rep.info(
+            "A1",
+            f"kein MCP-Server (project_type: {project_type}) — Marker nicht nötig",
+        )
+        return
     raw = pyproject.read_text(encoding="utf-8", errors="replace")
     m = re.search(r'^\s*readme\s*=\s*["\']([^"\']+)["\']', raw, re.MULTILINE)
     readme_name = m.group(1) if m else "README.md"

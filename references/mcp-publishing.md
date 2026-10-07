@@ -50,6 +50,10 @@ grep -c 'mcp-name:' README.md          # muss identisch sein
 Der Validator gibt die Anzahl bei jedem Lauf aus:
 `python3 scripts/validate_repo.py .`
 
+A1 gilt nur für MCP-Server: Ohne `server.json` und mit einem `project_type`
+≠ `mcp-server` in `.github/repo-meta.yml` meldet der Validator A1 als INFO
+statt als ERROR. Fehlt `repo-meta.yml`, bleibt die Prüfung aktiv.
+
 ## A2 — `server.json` `description` ≤ 100 Zeichen
 
 Die Registry lehnt längere Beschreibungen ab:

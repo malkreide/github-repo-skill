@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **A1 verlangte den `mcp-name`-Marker auch von Repos, die kein MCP-Server
+  sind.** Jedes Repo mit `pyproject.toml` ohne Marker bekam ein ERROR — bei
+  `personakit` (`project_type: python-lib`) blockierte das das Release-Gate
+  aus Schritt 12, obwohl dort nichts zu registrieren ist. Neu entfällt A1 als
+  INFO, wenn weder `server.json` existiert noch `repo-meta.yml` den
+  `project_type: mcp-server` nennt. Fehlt `repo-meta.yml` oder das Feld,
+  bleibt die Prüfung aktiv. Regressionstest: `scripts/test_a1.py`.
+
 - **B1 zählte Dateinamen statt Stellen — vier von fünf Meldungen waren
   Fehlalarme.** Die Fassung aus #24 warnte bei jedem `ruff==` im Workflow und
   kannte als Quelle nur `requirements-lint.txt` und `pyproject.toml`. Über das
