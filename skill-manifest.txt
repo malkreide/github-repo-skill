@@ -27,6 +27,7 @@ scripts/validate_repo.py=scripts/validate_repo.py
 scripts/check_release_artifacts.py=scripts/check_release_artifacts.py
 scripts/test_c1.py=scripts/test_c1.py
 scripts/test_emoji.py=scripts/test_emoji.py
+scripts/test_a1.py=scripts/test_a1.py
 
 assets/LICENSE-MIT.txt=assets/LICENSE-MIT.txt
 assets/gitignore/python.gitignore=assets/gitignore/python.gitignore

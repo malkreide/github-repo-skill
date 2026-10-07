@@ -16,6 +16,7 @@ Standard-Dateien, Secrets-Check, reproduzierbarer CI und Release-Gate.
 | `scripts/check_release_artifacts.py` | Im Release-Workflow, nach `python -m build`, vor dem Upload. |
 | `scripts/test_c1.py` | Nach jeder Änderung an der C1-Logik in `validate_repo.py`: `python3 scripts/test_c1.py` |
 | `scripts/test_emoji.py` | Nach jeder Änderung an `EMOJI_RE`: `python3 scripts/test_emoji.py` |
+| `scripts/test_a1.py` | Nach jeder Änderung an der A1-Logik (`check_mcp_marker`): `python3 scripts/test_a1.py` |
 | `references/mcp-spec.md` | Sobald ein `*-mcp`-Repo angelegt, migriert oder released wird. Zielstand ist MCP-Spec `2026-07-28`. |
 | `references/mcp-publishing.md` | Sobald ein `*-mcp`-Repo publiziert oder released wird. |
 | `references/review-rules.md` | **Vor** jeder Änderung an einem bestehenden Repo. |
