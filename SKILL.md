@@ -737,6 +737,22 @@ git push -u origin {branch-name}
    Marker einmal stillschweigend mitgerissen
 4. `python3 scripts/validate_repo.py .`
 
+## Schritt 11.9: Vorgelagerte Gates
+
+Schritt 12 beginnt nicht beim Tag, sondern beim ersten Versions-Bump: sobald
+`pyproject.toml`, `server.json`, der Tool-Pin oder das CHANGELOG-Datum angefasst
+werden. Davor müssen zwei Gates in dieser Session gelaufen sein – nicht
+«kürzlich», nicht «hole ich vor dem Push nach»:
+
+1. `verification-before-completion`: Tests, Lint und Build frisch ausgeführt,
+   Output gelesen, Exit-Codes geprüft.
+2. Bei `*-mcp`-Repos: `mcp-audit` ohne offene Blocker-Findings; Audit-Tracker
+   in Notion nachgeführt.
+
+Ein Bump vor den Gates ist kein Vorgriff, sondern Rework im Wartestand: findet
+das Audit einen Blocker, müssen Commit, Pin und CHANGELOG-Datum zurück.
+Zuerst die Gates, dann der Bump.
+
 ---
 
 ## Schritt 12: Release erstellen
@@ -846,6 +862,8 @@ falsche Änderung oder einen Fehlalarm verhindert:
 - [ ] Keine Personendaten oder internen Systembezeichnungen im Repo
 - [ ] Commit-Identität (`user.email`) bewusst gewählt
 - [ ] Secret Scanning + Push Protection aktiviert
+- [ ] `verification-before-completion` in dieser Session gelaufen (Schritt 11.9)
+- [ ] `mcp-audit` ohne Blocker — nur `*-mcp`-Repos (Schritt 11.9)
 
 **Session-Intake (Schritt 0)**
 - [ ] Pflichtfelder erfasst — Titel, Description, Topics genau einmal erfragt
