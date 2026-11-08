@@ -73,7 +73,7 @@ def main() -> int:
         for arcname in sorted(files, key=lambda s: s.encode("utf-8")):
             info = zipfile.ZipInfo(arcname, date_time=SOURCE_TIMESTAMP)
             info.compress_type = zipfile.ZIP_DEFLATED
-            info.create_system = 3            # Unix, wie zip(1)
+            info.create_system = 3  # Unix, wie zip(1)
             info.external_attr = 0o100644 << 16
             zf.writestr(info, files[arcname].read_bytes())
 
