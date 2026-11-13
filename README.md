@@ -127,6 +127,7 @@ github-repo-skill/
 │   ├── build_skill.sh                ← builds github-repo.skill
 │   └── validate_skill.py             ← manifest, frontmatter, archive is current
 ├── .github/repo-meta.yml             ← this repo's own intake result
+├── .githooks/pre-commit              ← CI's ruff gates, before the commit
 ├── README.md · README.de.md
 ├── SECURITY.md · CONTRIBUTING.md
 ├── LICENSE · .gitignore · CHANGELOG.md

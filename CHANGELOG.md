@@ -39,6 +39,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Pre-commit-Hook mit den ruff-Gates der CI** (`.githooks/pre-commit`).
+  Anlass: CI-Run #65 war rot, weil `scripts/build_skill.py` vor einem Kommentar
+  zu viele Leerzeichen trug — `ruff check` grün, `ruff format --check` rot. Die
+  Korrektur folgte als zweiter Commit direkt auf `main`. Der Hook prüft den
+  Index statt des Arbeitsbaums, also genau das, was committet wird; er liest
+  den Pin aus `requirements-lint.txt` und gleicht ihn wie die CI gegen das
+  laufende ruff ab. Bewusst keine `.pre-commit-config.yaml`: deren `rev:` wäre
+  nach §8.1 eine zweite Pin-Stelle, die Dependabot nicht nachzieht. Er
+  formatiert nicht selbst (Skripte bleiben lesend) und überspringt Commits,
+  die weder `scripts/` noch den Pin noch `ruff.toml` berühren. Aktivierung
+  einmal pro Klon: `git config core.hooksPath .githooks`.
+
 - **MCP-Server zielen auf Spec `2026-07-28`** — neue Referenz
   `references/mcp-spec.md`. Die Regeln (kein `initialize`, kein
   `Mcp-Session-Id`, `server/discover` Pflicht, `ttlMs`/`cacheScope`,
