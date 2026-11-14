@@ -19,6 +19,10 @@ LICENSE     text eol=lf
 # Auch sich selbst: sonst bleibt genau die Datei ohne Regel, die die Regeln
 # aufstellt. Folgenlos für git, aber es fällt beim nächsten Durchgang auf.
 .gitattributes text eol=lf
+# Hooks haben keine Endung, die eine der Regeln oben trifft. Ein Hook mit CRLF
+# bricht in sh ab — bei jedem Commit, und zwar auf genau den Windows-Hosts,
+# auf denen autocrlf=true ihn erst so ausgecheckt hat.
+.githooks/* text eol=lf
 
 # github-repo.skill ist ein ZIP-Archiv und wird im Repo mitgeliefert, damit es
 # sich ohne Build herunterladen und in Claude Desktop hochladen laesst. git

@@ -1,0 +1,91 @@
+#!/bin/sh
+# Pre-commit-Hook: dieselben ruff-Gates wie .github/workflows/ci.yml — vor dem
+# Commit statt nach dem Push.
+#
+# Anlass: CI-Run #65 (Commit ab9cf9d) war rot, weil scripts/build_skill.py vor
+# einem Kommentar mehr Leerzeichen trug, als `ruff format` stehen lässt. Das
+# Format-Gate schlug erst auf dem Runner an, die Korrektur folgte als eigener
+# Commit direkt auf main.
+#
+# Aktivieren, einmal pro Klon:   git config core.hooksPath .githooks
+# Im Notfall umgehen:            git commit --no-verify
+#
+# Was hier bewusst anders ist als in der CI:
+# - Geprüft wird der Index, nicht der Arbeitsbaum — also genau das, was
+#   committet wird. Wer nach `git add` noch formatiert und nicht neu stagt,
+#   hätte sonst einen grünen Hook und einen roten Commit.
+# - Berührt der Commit weder scripts/ noch requirements-lint.txt noch
+#   ruff.toml, läuft nichts. Ein reiner Doku-Commit braucht kein ruff.
+# - Der Hook prüft nur, er formatiert nicht (CONTRIBUTING: Skripte bleiben
+#   lesend). Ein Hook, der umschreibt, macht bei teilweise gestagten Dateien
+#   entweder den Commit falsch oder staget Änderungen, die niemand gewählt hat.
+#
+# Der ruff-Pin steht weiterhin nur in requirements-lint.txt (SKILL.md 8.1).
+# Der Hook liest ihn von dort und gleicht ihn — wie die CI — gegen das
+# laufende Programm ab, bevor die Gates laufen. Eine `.pre-commit-config.yaml`
+# wäre eine zweite Stelle mit eigener `rev:`, die Dependabot nicht nachzieht.
+
+set -u
+
+PIN_FILE=requirements-lint.txt
+
+fail() {
+  printf '\npre-commit: %s\n' "$1" >&2
+  shift
+  for line in "$@"; do
+    printf '  %s\n' "$line" >&2
+  done
+  printf '  Nur im Notfall umgehen: git commit --no-verify\n' >&2
+  exit 1
+}
+
+# Nichts Relevantes gestagt: nichts zu prüfen.
+if git diff --cached --quiet -- scripts/ "$PIN_FILE" ruff.toml; then
+  exit 0
+fi
+
+# 1. Versions-Gate. Derselbe Ausdruck wie im CI-Schritt «Ruff version gate»,
+#    aber gegen den Pin im Index — ein Commit, der den Pin hebt, wird an der
+#    neuen Zahl gemessen.
+command -v ruff >/dev/null 2>&1 ||
+  fail "ruff nicht gefunden." \
+    "Installieren:  python -m pip install -r $PIN_FILE" \
+    "Aus einer Git-GUI heraus fehlt ein aktiviertes venv oft im PATH."
+
+pin=$(git show ":$PIN_FILE" 2>/dev/null) ||
+  fail "$PIN_FILE fehlt im Index — dort steht der einzige ruff-Pin (SKILL.md 8.1)."
+want=$(printf '%s\n' "$pin" | sed -n 's/^ruff==\([0-9][0-9.]*\)[[:space:]]*$/\1/p')
+have=$(ruff --version | awk '{print $2}')
+
+[ -n "$want" ] ||
+  fail "$PIN_FILE pinnt ruff nicht exakt (erwartet: ruff==X.Y.Z)."
+[ "$want" = "$have" ] ||
+  fail "Pin ruff==$want, aber es läuft ruff $have." \
+    "Angleichen:  python -m pip install -r $PIN_FILE"
+
+# 2. Lint- und Format-Gate, je Datei gegen den Inhalt im Index. Zwei getrennte
+#    Urteile wie in der CI: ein grünes `ruff check` belegt kein grünes Format.
+lint_bad=
+fmt_bad=
+set -f
+IFS='
+'
+for f in $(git ls-files -- 'scripts/*.py' 'scripts/*.pyi'); do
+  git show ":$f" | ruff check --quiet --stdin-filename "$f" - ||
+    lint_bad="$lint_bad $f"
+  git show ":$f" | ruff format --diff --stdin-filename "$f" - ||
+    fmt_bad="$fmt_bad $f"
+done
+
+[ -z "$lint_bad$fmt_bad" ] && exit 0
+
+if [ -n "$fmt_bad" ]; then
+  printf '\npre-commit: Format-Gate rot:%s\n' "$fmt_bad" >&2
+  printf '  Beheben:  ruff format scripts/\n' >&2
+fi
+if [ -n "$lint_bad" ]; then
+  printf '\npre-commit: Lint-Gate rot:%s\n' "$lint_bad" >&2
+  printf '  Ansehen:  ruff check scripts/\n' >&2
+fi
+fail "Commit abgebrochen — die CI würde an derselben Stelle scheitern." \
+  "Danach die betroffenen Dateien neu stagen (git add …) und erneut committen."

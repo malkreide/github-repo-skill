@@ -134,6 +134,7 @@ github-repo-skill/
 │   ├── build_skill.sh                ← baut github-repo.skill
 │   └── validate_skill.py             ← Manifest, Frontmatter, Archiv aktuell
 ├── .github/repo-meta.yml             ← Intake-Ergebnis dieses Repos
+├── .githooks/pre-commit              ← ruff-Gates der CI, vor dem Commit
 ├── README.md · README.de.md
 ├── SECURITY.md · CONTRIBUTING.md
 ├── LICENSE · .gitignore · CHANGELOG.md

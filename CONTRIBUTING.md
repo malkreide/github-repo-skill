@@ -35,6 +35,26 @@ failure it prevents in a sentence.
 - Scripts stay read-only. A script that "cleans up" causes more damage than it
   prevents — that decision is deliberate, see `references/review-rules.md`.
 
+## Local checks
+
+A pre-commit hook runs the same ruff gates as CI — version, lint and format —
+against what is staged, i.e. exactly what you are about to commit. Activate it
+once per clone:
+
+```bash
+python -m pip install -r requirements-lint.txt
+git config core.hooksPath .githooks
+```
+
+The hook only checks; it never rewrites files. If it blocks, run
+`ruff format scripts/` (or fix what `ruff check scripts/` reports), stage the
+files again and commit. Commits that touch neither `scripts/`,
+`requirements-lint.txt` nor `ruff.toml` skip it. `core.hooksPath` replaces
+`.git/hooks`, so hooks you keep there stop running.
+
+It exists because a commit reached `main` with a formatting error that only CI
+caught: `ruff check` was green, `ruff format --check` was not.
+
 ## Before you push
 
 The skill's own rule applies to this repository too: no push without a secrets
