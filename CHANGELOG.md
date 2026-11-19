@@ -141,6 +141,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- CI baut mit `scripts/build_skill.py` und prüft das eingecheckte Archiv
+  byteweise; README und Manifest nachgeführt.
+
 - **Dependabot-Vorlage monatlich statt wöchentlich.** `assets/workflows/dependabot.yml`
   (und die eigene `.github/dependabot.yml`) laufen jetzt `monthly`. Anlass war
   der Sweep auf ruff 0.16.9: 50 Repos brauchten je einen PR, parallel lagen

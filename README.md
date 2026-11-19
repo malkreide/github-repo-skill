@@ -77,9 +77,12 @@ The archive is checked in, so a change to `SKILL.md` or to any bundled file need
 a rebuild — otherwise the download lags behind the repository. CI enforces this.
 
 ```bash
-./scripts/build_skill.sh        # writes github-repo.skill from skill-manifest.txt
-python3 scripts/validate_skill.py
+python scripts/build_skill.py   # writes github-repo.skill from skill-manifest.txt
+python scripts/validate_skill.py
 ```
+
+`scripts/build_skill.sh` remains as a Bash alternative (it needs `zip`) and must
+produce the same archive; the canonical builder is the Python one, which CI uses too.
 
 The build is reproducible: identical sources always produce a byte-identical
 archive. `skill-manifest.txt` is the single source of truth for what goes into the
