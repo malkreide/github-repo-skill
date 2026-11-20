@@ -92,6 +92,16 @@ jobs:
           git diff --exit-code --stat -- github-repo.skill
           python scripts/validate_skill.py
 
+      # Die README behauptet, beide Builder erzeugten dasselbe Archiv. Eine
+      # Regel in Prosa erzwingt nichts (OPS-005) — dieser Schritt tut es.
+      # Scheitert er, laufen die Builder auseinander, und dann wird entschieden,
+      # ob build_skill.sh bleibt. Lokal nicht nachspielbar (kein `zip` unter
+      # Windows); der Nachweis ist die CI.
+      - name: Bash builder produces the same archive
+        run: |
+          ./scripts/build_skill.sh
+          git diff --exit-code --stat -- github-repo.skill
+
       # C8 im Validator meldet abweichende Versionsanker als WARN — portfolioweit
       # richtig, denn eine veraltete Angabe ist ein Doku-Mangel und kein Baufehler.
       # Für dieses Repo reicht das nicht: Es ist die Quelle der Regel, und beim
