@@ -77,12 +77,32 @@ jobs:
       - name: Skill package matches the sources
         run: python scripts/validate_skill.py
 
-      # Erst danach der Build selbst. Er wird sonst nirgends ausgeführt und
-      # könnte unbemerkt kaputtgehen; die zweite Validierung belegt, dass sein
-      # Ergebnis dieselben Prüfungen besteht. Byte-Vergleich bewusst nicht:
-      # das Archiv ist reproduzierbar, aber eine andere `zip`-Version auf dem
-      # Runner würde die CI ohne Codeänderung rot machen — Regel 8.1 in grün.
-      - name: Build script still produces a valid package
+      # Erst danach der Build selbst, und das Ergebnis wieder gegen die Quellen.
+      # Ein Byte-Vergleich mit dem eingecheckten Archiv ist bewusst KEINE
+      # Prüfung. Befund vom 20.11.2026: build_skill.py erzeugt unter Windows mit
+      # Python 3.14 ein Archiv von 71'570 Bytes (identisch mit dem eingecheckten),
+      # auf diesem Runner mit Python 3.11 eines von 71'299 Bytes. Der Inhalt ist
+      # gleich — 0 CRLF, und validate_skill.py vergleicht jeden Eintrag byteweise
+      # mit seiner Quelle und ist auf beiden grün. Verschieden ist nur die
+      # Deflate-Ausgabe der jeweiligen zlib. Ein Byte-Vergleich des Archivs
+      # prüfte also die Kompressionsbibliothek des Runners, nicht den Builder,
+      # und machte die CI ohne Codeänderung rot (Regel 8.1).
+      #
+      # Reproduzierbar ist der Build auf derselben Plattform und Python-Version.
+      # Plattformfest ist der Inhaltsvergleich in validate_skill.py.
+      - name: Python builder produces a valid package
+        run: |
+          python scripts/build_skill.py
+          python scripts/validate_skill.py
+
+      # Die README behauptet, beide Builder erzeugten ein Archiv mit demselben
+      # Inhalt. Eine Regel in Prosa erzwingt nichts (OPS-005) — dieser Schritt
+      # tut es, mit derselben plattformfesten Prüfung: besteht das Archiv jedes
+      # Builders den Inhaltsvergleich gegen die Quellen, enthalten beide
+      # dasselbe. Scheitert er, laufen die Builder auseinander, und dann wird
+      # entschieden, ob build_skill.sh bleibt. Lokal nicht nachspielbar (kein
+      # `zip` unter Windows); der Nachweis ist die CI.
+      - name: Bash builder produces a valid package
         run: |
           ./scripts/build_skill.sh
           python scripts/validate_skill.py

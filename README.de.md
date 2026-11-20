@@ -88,8 +88,9 @@ hinterher. Die CI erzwingt das.
 python3 scripts/validate_skill.py
 ```
 
-Der Build ist reproduzierbar: gleiche Quellen ergeben immer ein bit-identisches
-Archiv. `skill-manifest.txt` ist die einzige Quelle der Wahrheit für den
+Der Build ist auf derselben Plattform und Python-Version reproduzierbar: gleiche
+Quellen ergeben dort ein bit-identisches Archiv. Über Plattformen ist der Inhalt
+gleich, die Kompression nicht — jede zlib erzeugt ihren eigenen Deflate-Strom. `skill-manifest.txt` ist die einzige Quelle der Wahrheit für den
 Paketinhalt — Dateien werden dort hinzugefügt oder umbenannt, nirgends sonst.
 
 ## Verwendung
