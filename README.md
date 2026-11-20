@@ -82,10 +82,14 @@ python scripts/validate_skill.py
 ```
 
 `scripts/build_skill.sh` remains as a Bash alternative (it needs `zip`) and must
-produce the same archive; the canonical builder is the Python one, which CI uses too.
+produce an archive with the same contents; the canonical builder is the Python one.
+CI runs both and checks each result with `validate_skill.py`.
 
-The build is reproducible: identical sources always produce a byte-identical
-archive. `skill-manifest.txt` is the single source of truth for what goes into the
+The build is reproducible on the same platform and Python version: identical
+sources produce a byte-identical archive there. Across platforms the contents are
+identical, the compression is not — each zlib emits its own deflate stream — so
+the cross-platform check compares every entry with its source, not the archive bytes.
+`skill-manifest.txt` is the single source of truth for what goes into the
 package — add or rename files there, nowhere else.
 
 ## Usage / Quickstart

@@ -141,8 +141,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- CI baut mit `scripts/build_skill.py` und prüft das eingecheckte Archiv
-  byteweise; README und Manifest nachgeführt.
+- CI baut mit `scripts/build_skill.py` und mit `scripts/build_skill.sh` und
+  prüft jedes Ergebnis mit `validate_skill.py` gegen die Quellen; README und
+  Manifest nachgeführt. Ein zwischenzeitlich eingeführter Byte-Vergleich des
+  Archivs ist wieder entfernt: am 20.11.2026 ergab derselbe Builder unter
+  Windows/Python 3.14 71'570 Bytes, auf dem Linux-Runner mit Python 3.11
+  71'299 Bytes — bei gleichem Inhalt, nur mit anderer Deflate-Ausgabe der
+  jeweiligen zlib. Reproduzierbar ist der Build auf derselben Plattform und
+  Python-Version; über Plattformen ist der Inhalt gleich, die Kompression nicht.
 
 - **Dependabot-Vorlage monatlich statt wöchentlich.** `assets/workflows/dependabot.yml`
   (und die eigene `.github/dependabot.yml`) laufen jetzt `monthly`. Anlass war

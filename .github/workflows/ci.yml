@@ -77,30 +77,35 @@ jobs:
       - name: Skill package matches the sources
         run: python scripts/validate_skill.py
 
-      # Erst danach der Build selbst, jetzt mit Byte-Vergleich. Früher ging das
-      # nicht: build_skill.sh hängt an der `zip`-Version des Runners, ein
-      # Update dort hätte die CI ohne Codeänderung rot gemacht (Regel 8.1).
-      # scripts/build_skill.py ist plattformunabhängig — es schreibt mit
-      # `zipfile`, festem Zeitstempel und sortierten Einträgen. Am 19.11.2026
-      # unter Windows (Python 3.14) nachgemessen: der Build reproduziert das
-      # eingecheckte Archiv byteidentisch. Jede Abweichung heisst also: Archiv
-      # nicht neu gebaut oder Builder kaputt. Die Validierung danach belegt,
-      # dass das Ergebnis dieselben Prüfungen besteht.
-      - name: Build reproduces the checked-in package byte for byte
+      # Erst danach der Build selbst, und das Ergebnis wieder gegen die Quellen.
+      # Ein Byte-Vergleich mit dem eingecheckten Archiv ist bewusst KEINE
+      # Prüfung. Befund vom 20.11.2026: build_skill.py erzeugt unter Windows mit
+      # Python 3.14 ein Archiv von 71'570 Bytes (identisch mit dem eingecheckten),
+      # auf diesem Runner mit Python 3.11 eines von 71'299 Bytes. Der Inhalt ist
+      # gleich — 0 CRLF, und validate_skill.py vergleicht jeden Eintrag byteweise
+      # mit seiner Quelle und ist auf beiden grün. Verschieden ist nur die
+      # Deflate-Ausgabe der jeweiligen zlib. Ein Byte-Vergleich des Archivs
+      # prüfte also die Kompressionsbibliothek des Runners, nicht den Builder,
+      # und machte die CI ohne Codeänderung rot (Regel 8.1).
+      #
+      # Reproduzierbar ist der Build auf derselben Plattform und Python-Version.
+      # Plattformfest ist der Inhaltsvergleich in validate_skill.py.
+      - name: Python builder produces a valid package
         run: |
           python scripts/build_skill.py
-          git diff --exit-code --stat -- github-repo.skill
           python scripts/validate_skill.py
 
-      # Die README behauptet, beide Builder erzeugten dasselbe Archiv. Eine
-      # Regel in Prosa erzwingt nichts (OPS-005) — dieser Schritt tut es.
-      # Scheitert er, laufen die Builder auseinander, und dann wird entschieden,
-      # ob build_skill.sh bleibt. Lokal nicht nachspielbar (kein `zip` unter
-      # Windows); der Nachweis ist die CI.
-      - name: Bash builder produces the same archive
+      # Die README behauptet, beide Builder erzeugten ein Archiv mit demselben
+      # Inhalt. Eine Regel in Prosa erzwingt nichts (OPS-005) — dieser Schritt
+      # tut es, mit derselben plattformfesten Prüfung: besteht das Archiv jedes
+      # Builders den Inhaltsvergleich gegen die Quellen, enthalten beide
+      # dasselbe. Scheitert er, laufen die Builder auseinander, und dann wird
+      # entschieden, ob build_skill.sh bleibt. Lokal nicht nachspielbar (kein
+      # `zip` unter Windows); der Nachweis ist die CI.
+      - name: Bash builder produces a valid package
         run: |
           ./scripts/build_skill.sh
-          git diff --exit-code --stat -- github-repo.skill
+          python scripts/validate_skill.py
 
       # C8 im Validator meldet abweichende Versionsanker als WARN — portfolioweit
       # richtig, denn eine veraltete Angabe ist ein Doku-Mangel und kein Baufehler.
