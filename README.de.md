@@ -84,8 +84,8 @@ Datei braucht deshalb einen Neubau — sonst hinkt der Download dem Repository
 hinterher. Die CI erzwingt das.
 
 ```bash
-./scripts/build_skill.sh        # erzeugt github-repo.skill aus skill-manifest.txt
-python3 scripts/validate_skill.py
+python scripts/build_skill.py   # erzeugt github-repo.skill aus skill-manifest.txt
+python scripts/validate_skill.py
 ```
 
 Der Build ist auf derselben Plattform und Python-Version reproduzierbar: gleiche
@@ -132,7 +132,7 @@ github-repo-skill/
 ├── scripts/
 │   ├── validate_repo.py              ← Struktur- und Dokumentationsprüfung
 │   ├── check_release_artifacts.py    ← Release-Gate
-│   ├── build_skill.sh                ← baut github-repo.skill
+│   ├── build_skill.py                ← baut github-repo.skill
 │   └── validate_skill.py             ← Manifest, Frontmatter, Archiv aktuell
 ├── .github/repo-meta.yml             ← Intake-Ergebnis dieses Repos
 ├── .githooks/pre-commit              ← ruff-Gates der CI, vor dem Commit

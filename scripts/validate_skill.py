@@ -205,7 +205,7 @@ def check_archive_is_current(mapping: dict[str, str]) -> None:
     """
     if not ARCHIVE.exists():
         fail(
-            f"{ARCHIVE.name} fehlt. './scripts/build_skill.sh' ausführen und committen."
+            f"{ARCHIVE.name} fehlt. 'python scripts/build_skill.py' ausführen und committen."
         )
         return
 
@@ -227,7 +227,7 @@ def check_archive_is_current(mapping: dict[str, str]) -> None:
                 if zf.read(member) != src.read_bytes():
                     fail(
                         f"{ARCHIVE.name}: '{target}' weicht von '{source}' ab. "
-                        "'./scripts/build_skill.sh' ausführen und das Ergebnis "
+                        "'python scripts/build_skill.py' ausführen und das Ergebnis "
                         "committen."
                     )
     except zipfile.BadZipFile:

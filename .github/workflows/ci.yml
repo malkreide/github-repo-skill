@@ -112,18 +112,6 @@ jobs:
           python scripts/build_skill.py
           python scripts/validate_skill.py
 
-      # Die README behauptet, beide Builder erzeugten ein Archiv mit demselben
-      # Inhalt. Eine Regel in Prosa erzwingt nichts (OPS-005) — dieser Schritt
-      # tut es, mit derselben plattformfesten Prüfung: besteht das Archiv jedes
-      # Builders den Inhaltsvergleich gegen die Quellen, enthalten beide
-      # dasselbe. Scheitert er, laufen die Builder auseinander, und dann wird
-      # entschieden, ob build_skill.sh bleibt. Lokal nicht nachspielbar (kein
-      # `zip` unter Windows); der Nachweis ist die CI.
-      - name: Bash builder produces a valid package
-        run: |
-          ./scripts/build_skill.sh
-          python scripts/validate_skill.py
-
       # C8 im Validator meldet abweichende Versionsanker als WARN — portfolioweit
       # richtig, denn eine veraltete Angabe ist ein Doku-Mangel und kein Baufehler.
       # Für dieses Repo reicht das nicht: Es ist die Quelle der Regel, und beim

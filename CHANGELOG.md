@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Removed
+
+- **`scripts/build_skill.sh` ist gestrichen; `scripts/build_skill.py` ist der
+  einzige Builder.** Python braucht das Repo ohnehin für `validate_skill.py`,
+  die Bash-Variante verlangte zusätzlich `zip` (unter Windows nicht vorhanden)
+  und einen zweiten CI-Schritt, der nur prüfte, dass beide Builder dasselbe
+  liefern. Mit ihr entfallen der CI-Schritt «Bash builder produces a valid
+  package» und der `.gitignore`-Eintrag `/build/` für ihr Zwischenverzeichnis
+  — der Python-Builder schreibt das Archiv direkt. READMEs, Manifest-Kommentar,
+  Docstring und die Fehlermeldungen von `validate_skill.py` nennen jetzt
+  `python scripts/build_skill.py`. `github-repo.skill` ist unverändert: keine
+  der geänderten Dateien steht im Manifest.
+
 ### Fixed
 
 - **Die Regressionstests brachen mit umgeleiteter Ausgabe an der eigenen
