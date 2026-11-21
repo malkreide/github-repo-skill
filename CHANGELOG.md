@@ -16,7 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   U+2713 (`✓`), Exit 1 — reproduzierbar mit
   `PYTHONIOENCODING=cp1252 python scripts/test_a1.py`. Neu stehen `OK` und
   `FAIL` als Marker, und alle Meldungen laufen über einen Helfer, der Zeichen
-  ausserhalb der Kodierung von stdout als Escape (`→`) ausgibt, statt
+  ausserhalb der Kodierung von stdout als Escape (`\u2192`) ausgibt, statt
   abzubrechen. Das gilt auch für den roten Weg: `test_emoji.py` nennt in
   seinen Meldungen Emoji und Pfeile. stdout wird nicht umkonfiguriert,
   Fixtures und Prüflogik sind unverändert.
