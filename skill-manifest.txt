@@ -1,7 +1,7 @@
 # Paketmanifest für github-repo.skill
 #
 # Einzige Quelle der Wahrheit für den Aufbau des .skill-Archivs.
-# Gelesen von scripts/build_skill.py, scripts/build_skill.sh und scripts/validate_skill.py.
+# Gelesen von scripts/build_skill.py und scripts/validate_skill.py.
 #
 # Format:  <Zielpfad im Paket>=<Quellpfad im Repository>
 # Der Zielpfad ist relativ zum Verzeichnis github-repo/ im Archiv.

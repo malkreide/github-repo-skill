@@ -81,10 +81,6 @@ python scripts/build_skill.py   # writes github-repo.skill from skill-manifest.t
 python scripts/validate_skill.py
 ```
 
-`scripts/build_skill.sh` remains as a Bash alternative (it needs `zip`) and must
-produce an archive with the same contents; the canonical builder is the Python one.
-CI runs both and checks each result with `validate_skill.py`.
-
 The build is reproducible on the same platform and Python version: identical
 sources produce a byte-identical archive there. Across platforms the contents are
 identical, the compression is not — each zlib emits its own deflate stream — so
@@ -131,7 +127,7 @@ github-repo-skill/
 ├── scripts/
 │   ├── validate_repo.py              ← structure and documentation check
 │   ├── check_release_artifacts.py    ← release gate
-│   ├── build_skill.sh                ← builds github-repo.skill
+│   ├── build_skill.py                ← builds github-repo.skill
 │   └── validate_skill.py             ← manifest, frontmatter, archive is current
 ├── .github/repo-meta.yml             ← this repo's own intake result
 ├── .githooks/pre-commit              ← CI's ruff gates, before the commit

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build-Skript für github-repo.skill – plattformunabhängiges Gegenstück zu build_skill.sh.
+"""Build-Skript für github-repo.skill – der einzige, plattformunabhängige Builder.
 
 Erzeugt aus den Quelldateien des Repositorys ein ZIP-Archiv, das sich in
 Claude Desktop und auf claude.ai unter Einstellungen → Skills hochladen
@@ -11,7 +11,7 @@ Aufruf:  python scripts/build_skill.py
 Danach `python scripts/validate_skill.py` ausführen und das Ergebnis
 committen: die CI prüft, ob das eingecheckte Archiv zu den Quellen passt.
 
-Reproduzierbar wie das Bash-Skript: fester Zeitstempel für alle Einträge,
+Reproduzierbar: fester Zeitstempel für alle Einträge,
 sortierte Reihenfolge (Bytereihenfolge wie LC_ALL=C), keine Verzeichnis-
 einträge, Unix-Dateiattribute 0644, Deflate mit Standardstufe.
 """
