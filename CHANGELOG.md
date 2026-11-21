@@ -9,6 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Die Regressionstests brachen mit umgeleiteter Ausgabe an der eigenen
+  Erfolgszeile ab.** `scripts/test_a1.py`, `test_c1.py` und `test_emoji.py`
+  waren im interaktiven Fenster grün (8, 14, 47 Fälle). Umgeleitet schreibt
+  Windows mit cp1252, und alle drei endeten mit `UnicodeEncodeError` an
+  U+2713 (`✓`), Exit 1 — reproduzierbar mit
+  `PYTHONIOENCODING=cp1252 python scripts/test_a1.py`. Neu stehen `OK` und
+  `FAIL` als Marker, und alle Meldungen laufen über einen Helfer, der Zeichen
+  ausserhalb der Kodierung von stdout als Escape (`\u2192`) ausgibt, statt
+  abzubrechen. Das gilt auch für den roten Weg: `test_emoji.py` nennt in
+  seinen Meldungen Emoji und Pfeile. stdout wird nicht umkonfiguriert,
+  Fixtures und Prüflogik sind unverändert.
+
 - **A1 verlangte den `mcp-name`-Marker auch von Repos, die kein MCP-Server
   sind.** Jedes Repo mit `pyproject.toml` ohne Marker bekam ein ERROR — bei
   `personakit` (`project_type: python-lib`) blockierte das das Release-Gate

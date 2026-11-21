@@ -207,17 +207,29 @@ def test_c1_missing_is_level_blind():
     assert not bad, "C1-Existenz:\n  " + "\n  ".join(bad)
 
 
+def _emit(text: str = "") -> None:
+    """print(), das nicht an der eigenen Ausgabe scheitert.
+
+    Umgeleitet schreibt Windows mit der ANSI-Codepage (cp1252). Zeichen, die
+    die Kodierung von stdout nicht kennt, erscheinen deshalb als Escape
+    (``\\u2192``), statt einen UnicodeEncodeError auszulösen. stdout
+    selbst wird nicht umkonfiguriert.
+    """
+    enc = getattr(sys.stdout, "encoding", None) or "ascii"
+    print(text.encode(enc, errors="backslashreplace").decode(enc))
+
+
 def main() -> int:
     failed = 0
     for fn in (test_c1_order, test_c1_missing_is_level_blind):
         try:
             fn()
-            print(f"✓ {fn.__name__}")
+            _emit(f"OK   {fn.__name__}")
         except AssertionError as exc:
             failed += 1
-            print(f"✗ {fn.__name__}\n  {exc}")
+            _emit(f"FAIL {fn.__name__}\n  {exc}")
     total = len(ORDER_CASES) + len(EXIST_CASES)
-    print(
+    _emit(
         f"\n{total} Fälle, {'alle grün' if not failed else f'{failed} Gruppe(n) rot'}"
     )
     return 1 if failed else 0

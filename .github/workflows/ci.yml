@@ -67,6 +67,23 @@ jobs:
       - name: Format gate
         run: ruff format --check scripts/
 
+      # Die Regressionstests laufen eigenständig, ohne pytest. Zweimal je
+      # Datei: mit der Standard-Kodierung des Runners (UTF-8) und mit cp1252,
+      # der Kodierung, die Windows bei umgeleiteter Ausgabe verwendet. Befund
+      # vom 21.11.2026: im Fenster grün, umgeleitet UnicodeEncodeError an der
+      # eigenen Erfolgszeile, Exit 1. Ohne den cp1252-Lauf wäre genau dieser
+      # Fehler hier unsichtbar, weil der Runner UTF-8 schreibt.
+      - name: Regression tests (runner default and cp1252)
+        run: |
+          for t in scripts/test_a1.py scripts/test_c1.py scripts/test_emoji.py; do
+            echo "::group::$t (runner default)"
+            python "$t"
+            echo "::endgroup::"
+            echo "::group::$t (PYTHONIOENCODING=cp1252)"
+            PYTHONIOENCODING=cp1252 python "$t"
+            echo "::endgroup::"
+          done
+
       # Der Skill prüft sein eigenes Repo mit dem eigenen Validator.
       - name: Validate repository structure
         run: python scripts/validate_repo.py .
